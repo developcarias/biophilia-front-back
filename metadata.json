@@ -1,0 +1,5 @@
+{
+  "name": "Biophilia Institute",
+  "description": "A responsive website for the Biophilia foundation with a green-themed design. Features a transparent-on-top header, multi-language support (EN/ES), a donation page, and a state-based CMS powered by Gemini.",
+  "requestFramePermissions": []
+}

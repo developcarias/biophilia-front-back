@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="https://biophiliaweb.org/favicon.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Biophilia Institute</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              'brand-green-dark': '#166534',
+              'brand-green': '#15803d',
+              'brand-green-light': '#f0fdf4',
+              'brand-accent': '#10b981',
+              'brand-gray': '#4a5568',
+              'brand-yellow': '#facc15',
+            },
+          }
+        }
+      }
+    </script>
+  <script type="importmap">
+{
+  "imports": {
+    "react-dom/": "https://esm.sh/react-dom@^19.1.1/",
+    "react/": "https://esm.sh/react@^19.1.1/",
+    "react": "https://esm.sh/react@^19.1.1",
+    "react-router-dom": "https://esm.sh/react-router-dom@^7.7.1",
+    "@google/genai": "https://esm.sh/@google/genai@^1.12.0",
+    "immer": "https://esm.sh/immer@10.1.1",
+    "dotenv": "https://aistudiocdn.com/dotenv@^17.2.2",
+    "multer": "https://aistudiocdn.com/multer@^2.0.2",
+    "buffer": "https://aistudiocdn.com/buffer@^6.0.3",
+    "cors": "https://aistudiocdn.com/cors@^2.8.5",
+    "mysql2/": "https://aistudiocdn.com/mysql2@^3.14.4/",
+    "nodemailer": "https://aistudiocdn.com/nodemailer@^7.0.6",
+    "basic-ftp": "https://aistudiocdn.com/basic-ftp@^5.0.5",
+    "express": "https://aistudiocdn.com/express@^5.1.0"
+  }
+}
+</script>
+<link rel="stylesheet" href="/index.css">
+</head>
+  <body>
+    <div id="root"></div>
+  <script type="module" src="/index.tsx"></script>
+</body>
+</html>

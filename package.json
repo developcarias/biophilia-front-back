@@ -1,0 +1,29 @@
+
+{
+  "name": "biophilia-backend",
+  "version": "1.0.0",
+  "description": "Backend server for the Biophilia Institute website.",
+  "main": "server.ts",
+  "scripts": {
+    "start": "ts-node-dev --respawn --transpile-only server.ts",
+    "build": "tsc"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "cors": "^2.8.5",
+    "mysql2": "^3.10.1",
+    "nodemailer": "^6.9.13",
+    "basic-ftp": "^5.0.5",
+    "multer": "^1.4.5-lts.1",
+    "dotenv": "^16.4.5"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.21",
+    "@types/cors": "^2.8.17",
+    "@types/nodemailer": "^6.4.15",
+    "@types/multer": "^1.4.11",
+    "@types/node": "^20.14.2",
+    "ts-node-dev": "^2.0.0",
+    "typescript": "^5.4.5"
+  }
+}
