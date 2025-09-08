@@ -44,7 +44,7 @@ const BlogPostPage: React.FC<BlogPostPageProps> = ({ posts, content, uiText }) =
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-3xl">
           <div className="mb-8 text-center">
             <p className="text-gray-500">By {post.author}</p>
-            <p className="text-gray-500">{new Date(post.date).toLocaleDateString(language, { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+            <p className="text-gray-500">{new Date(post.date).toLocaleDateString(language, { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' })}</p>
           </div>
           <div className="prose lg:prose-xl max-w-none text-brand-gray leading-relaxed whitespace-pre-line">
             {post.content[language]}

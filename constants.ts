@@ -79,6 +79,7 @@ export const INITIAL_CONTENT: PageContent = {
   },
   projectsPage: {
     banner: { title: { en: '', es: '' }, imageUrl: '' },
+    slogan: { en: '', es: '' },
     intro: { en: '', es: '' },
   },
   projectDetailPage: {

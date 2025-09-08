@@ -127,9 +127,9 @@ const Header: React.FC<HeaderProps> = ({ content, uiText }) => {
               </ReactRouterDOM.NavLink>
             </div>
 
-            <nav className="hidden lg:flex items-center space-x-8 absolute left-1/2 transform -translate-x-1/2">
+            <nav className="hidden lg:flex items-center space-x-4 absolute left-1/2 transform -translate-x-1/2">
               {content.navigation.map(link => {
-                  const navLinkClasses = "text-white text-xl font-medium py-2 border-b-2 transition-colors duration-300";
+                  const navLinkClasses = "text-white text-xl font-medium py-2 border-b-2 transition-colors duration-300 whitespace-nowrap";
                   return (
                     <ReactRouterDOM.NavLink
                       key={link.id}

@@ -31,6 +31,7 @@ export interface Project {
   id: string;
   title: LocalizedText;
   description: LocalizedText;
+  detailDescription: LocalizedText;
   imageUrl: string;
   imageAlt: string;
   activities: ProjectActivity[];
@@ -200,6 +201,7 @@ export interface ProjectsPageContent {
     title: LocalizedText;
     imageUrl: string;
   };
+  slogan: LocalizedText;
   intro: LocalizedText;
 }
 

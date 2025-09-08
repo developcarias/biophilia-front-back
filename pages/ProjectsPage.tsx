@@ -26,6 +26,9 @@ const ProjectsPage: React.FC<ProjectsPageProps> = ({ content, projects, uiText }
       <div className="bg-white py-16">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="max-w-3xl mx-auto text-center mb-12">
+            <Editable localizedText={content.slogan || {en:'', es:''}} basePath="projectsPage.slogan">
+              <h2 className="text-2xl text-brand-green-dark italic mb-4">{content.slogan?.[language]}</h2>
+            </Editable>
             <Editable localizedText={content.intro || {en:'',es:''}} basePath="projectsPage.intro" multiline>
               <p className="text-xl text-brand-gray">{content.intro?.[language]}</p>
             </Editable>

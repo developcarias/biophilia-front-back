@@ -48,7 +48,7 @@ const BlogPage: React.FC<BlogPageProps> = ({ content, posts, uiText }) => {
                     <img src={featuredPost.imageUrl} alt={featuredPost.imageAlt} className="w-full h-96 object-cover transition-transform duration-500 group-hover:scale-105" />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent"></div>
                     <div className="absolute bottom-0 left-0 p-8">
-                        <p className="text-sm text-gray-300 mb-1">{featuredPost.author} &bull; {new Date(featuredPost.date).toLocaleDateString(language, { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+                        <p className="text-sm text-gray-300 mb-1">{featuredPost.author} &bull; {new Date(featuredPost.date).toLocaleDateString(language, { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' })}</p>
                         <h3 className="text-4xl font-extrabold mb-2">{featuredPost.title[language]}</h3>
                         <p className="text-gray-200 leading-relaxed max-w-2xl">{featuredPost.summary[language]}</p>
                     </div>
@@ -65,7 +65,7 @@ const BlogPage: React.FC<BlogPageProps> = ({ content, posts, uiText }) => {
                                     <img src={post.imageUrl} alt={post.imageAlt} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
                                 </div>
                                 <div className="p-6 flex flex-col flex-grow">
-                                    <p className="text-sm text-gray-500 mb-1">{post.author} &bull; {new Date(post.date).toLocaleDateString(language, { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+                                    <p className="text-sm text-gray-500 mb-1">{post.author} &bull; {new Date(post.date).toLocaleDateString(language, { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' })}</p>
                                     <h3 className="text-xl font-bold text-brand-green-dark mb-2 flex-grow">{post.title[language]}</h3>
                                     <p className="font-bold text-brand-green group-hover:text-brand-accent mt-4 self-start">
                                         {uiText.readMore[language]} &rarr;

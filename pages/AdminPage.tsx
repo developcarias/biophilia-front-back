@@ -583,20 +583,24 @@ const AboutTab = React.memo(({data, handlers}: {data: PageContent['aboutPage'], 
 const ProjectsTab = React.memo(({data, handlers}: {data: PageContent, handlers: any}) => {
     const { renderLocalizedTextField, renderImageField, renderTextField, handleAddItem, handleRemoveItem, t } = handlers;
     const newProjectActivityTemplate: Omit<ProjectActivity, 'id'> = { date: new Date().toISOString().split('T')[0], title: { en: '', es: '' }, description: { en: '', es: '' }, imageUrl: '' };
-    const newProjectTemplate: Omit<Project, 'id'> = { title: { en: '', es: '' }, description: { en: '', es: '' }, imageUrl: '', imageAlt: '', activities: [], detailImageUrl: '' };
+    const newProjectTemplate: Omit<Project, 'id'> = { title: { en: '', es: '' }, description: { en: '', es: '' }, detailDescription: { en: '', es: '' }, imageUrl: '', imageAlt: '', activities: [], detailImageUrl: '' };
     return <>
         <h2 className="text-2xl font-semibold text-brand-green-dark mb-4">{t('tabProjects')}</h2>
         <AdminSection title={t('sectionBanner')}>
             {renderLocalizedTextField('Title', 'projectsPage.banner.title')}
             {renderImageField('Image URL', 'projectsPage.banner.imageUrl')}
         </AdminSection>
-            <AdminSection title={t('sectionIntro')}>{renderLocalizedTextField('Intro Text', 'projectsPage.intro', true)}</AdminSection>
+        <AdminSection title={t('sectionIntro')}>
+            {renderLocalizedTextField('Slogan', 'projectsPage.slogan')}
+            {renderLocalizedTextField('Intro Text', 'projectsPage.intro', true)}
+        </AdminSection>
         <AdminSection title="Program List">
             {data.projects?.map((project, index) => (
             <ListItemWrapper key={project.id} title={`Program: ${project.title?.en || `(Program ${index+1})`}`} onRemove={() => handleRemoveItem('projects', index)}>
                 {renderTextField('Program ID (e.g. project_urban_forest)', `projects.${index}.id`)}
                 {renderLocalizedTextField('Title', `projects.${index}.title`)}
                 {renderLocalizedTextField('Description (for list page)', `projects.${index}.description`, true)}
+                {renderLocalizedTextField('Detailed Description (for detail page)', `projects.${index}.detailDescription`, true)}
                 {renderImageField('List Image URL', `projects.${index}.imageUrl`)}
                 {renderTextField('List Image Alt Text', `projects.${index}.imageAlt`)}
                 <hr className="my-4"/>

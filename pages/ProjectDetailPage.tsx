@@ -3,6 +3,7 @@ import * as ReactRouterDOM from 'react-router-dom';
 import { Project, ProjectDetailPageContent } from '../types';
 import { useI18n } from '../i18n';
 import PageBanner from '../components/PageBanner';
+import Editable from '../components/Editable';
 
 interface ProjectDetailPageProps {
   projects: Project[];
@@ -56,6 +57,11 @@ const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ projects, content
       />
       <div className="bg-white py-16 lg:py-24">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="max-w-3xl mx-auto text-center mb-16">
+              <Editable localizedText={project.detailDescription || {en:'',es:''}} basePath={`${basePath}.detailDescription`} multiline>
+                  <p className="text-xl text-brand-gray whitespace-pre-line">{project.detailDescription?.[language]}</p>
+              </Editable>
+            </div>
           <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12">
             {project.activities.map((activity, index) => {
               const isLastItem = index === project.activities.length - 1;
@@ -73,7 +79,7 @@ const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ projects, content
                       <img src={activity.imageUrl} alt={activity.title[language]} className="w-full h-64 md:h-full object-cover" />
                     </div>
                     <div className="p-6 md:p-8 flex flex-col justify-center">
-                      <p className="text-sm text-gray-500 mb-2">{new Date(activity.date).toLocaleDateString(language, { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+                      <p className="text-sm text-gray-500 mb-2">{new Date(activity.date).toLocaleDateString(language, { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' })}</p>
                       <h3 className="text-2xl font-bold text-brand-green-dark mb-4">{activity.title[language]}</h3>
                       <div className="prose max-w-none text-brand-gray whitespace-pre-line leading-relaxed">
                         {activity.description[language]}
@@ -93,7 +99,7 @@ const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ projects, content
                 >
                   <img src={activity.imageUrl} alt={activity.title[language]} className="w-full h-64 object-cover" />
                   <div className="p-6 flex flex-col flex-grow">
-                    <p className="text-sm text-gray-500 mb-2">{new Date(activity.date).toLocaleDateString(language, { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+                    <p className="text-sm text-gray-500 mb-2">{new Date(activity.date).toLocaleDateString(language, { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' })}</p>
                     <h3 className="text-xl font-bold text-brand-green-dark mb-4">{activity.title[language]}</h3>
                     <div className="prose prose-sm max-w-none text-brand-gray whitespace-pre-line leading-relaxed flex-grow">
                       {activity.description[language]}

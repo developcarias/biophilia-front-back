@@ -67,7 +67,7 @@ export async function getContent(): Promise<PageContent> {
         });
 
         const parsedActivities = parseJsonFields(allActivitiesRows, ['title', 'description']);
-        const parsedProjects = parseJsonFields(projectsRows, ['title', 'description']).map((p: any) => ({
+        const parsedProjects = parseJsonFields(projectsRows, ['title', 'description', 'detailDescription']).map((p: any) => ({
             ...p,
             activities: parsedActivities.filter((a: any) => a.project_id === p.id)
         }));
@@ -117,71 +117,131 @@ export async function updateContent(content: PageContent): Promise<void> {
             }
         }
 
-        // 4. Update Projects and Activities (Clear and re-insert)
-        await connection.execute('DELETE FROM project_activities');
-        await connection.execute('DELETE FROM projects');
-        const insertProjectQuery = 'INSERT INTO projects (id, title, description, imageUrl, imageAlt, detailImageUrl, display_order) VALUES (?, ?, ?, ?, ?, ?, ?)';
-        const insertActivityQuery = 'INSERT INTO project_activities (id, date, title, description, imageUrl, project_id, display_order) VALUES (?, ?, ?, ?, ?, ?, ?)';
-        
-        for (const [index, project] of content.projects.entries()) {
-            const { activities, ...projectData } = project;
-            const stringifiedProject = stringifyJsonFields(projectData, ['title', 'description']);
-            await connection.execute(insertProjectQuery, [
-                stringifiedProject.id, 
-                stringifiedProject.title, 
-                stringifiedProject.description, 
-                stringifiedProject.imageUrl, 
-                stringifiedProject.imageAlt, 
-                stringifiedProject.detailImageUrl, 
-                index
-            ]);
-            
-            for(const [actIndex, activity] of activities.entries()) {
-                 const stringifiedActivity = stringifyJsonFields(activity, ['title', 'description']);
-                 await connection.execute(insertActivityQuery, [
-                    stringifiedActivity.id,
-                    stringifiedActivity.date,
-                    stringifiedActivity.title,
-                    stringifiedActivity.description,
-                    stringifiedActivity.imageUrl,
-                    project.id,
-                    actIndex
-                 ]);
+        // 4. Synchronize Projects and Activities
+        if (content.projects && Array.isArray(content.projects)) {
+            const [projectCountResult] = await connection.query('SELECT COUNT(*) as count FROM projects');
+            if ((projectCountResult as any)[0].count > 0 && content.projects.length === 0) {
+                console.warn("SAFETY-LOCK: An attempt to save an empty list of projects was blocked to prevent accidental data loss. No changes were made to projects or activities.");
+            } else {
+                const [existingProjectRows] = await connection.query('SELECT id FROM projects');
+                const existingProjectIds = (existingProjectRows as any[]).map(p => p.id);
+                const incomingProjectIds = content.projects.map(p => p.id);
+
+                const projectIdsToDelete = existingProjectIds.filter(id => !incomingProjectIds.includes(id));
+                if (projectIdsToDelete.length > 0) {
+                    await connection.query('DELETE FROM project_activities WHERE project_id IN (?)', [projectIdsToDelete]);
+                    await connection.query('DELETE FROM projects WHERE id IN (?)', [projectIdsToDelete]);
+                }
+
+                for (const [index, project] of content.projects.entries()) {
+                    const { activities, ...projectData } = project;
+                    const stringifiedProject = stringifyJsonFields(projectData, ['title', 'description', 'detailDescription']);
+                    const upsertProjectQuery = `
+                        INSERT INTO projects (id, title, description, detailDescription, imageUrl, imageAlt, detailImageUrl, display_order) 
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                        ON DUPLICATE KEY UPDATE 
+                        title=VALUES(title), description=VALUES(description), detailDescription=VALUES(detailDescription), imageUrl=VALUES(imageUrl), imageAlt=VALUES(imageAlt), detailImageUrl=VALUES(detailImageUrl), display_order=VALUES(display_order)
+                    `;
+                    await connection.execute(upsertProjectQuery, [
+                        stringifiedProject.id, stringifiedProject.title, stringifiedProject.description, stringifiedProject.detailDescription,
+                        stringifiedProject.imageUrl, stringifiedProject.imageAlt, stringifiedProject.detailImageUrl, index
+                    ]);
+                    
+                    if (activities && Array.isArray(activities)) {
+                        const [existingActivityRows] = await connection.query('SELECT id FROM project_activities WHERE project_id = ?', [project.id]);
+                        const existingActivityIds = (existingActivityRows as any[]).map(a => a.id);
+                        const incomingActivityIds = activities.map(a => a.id);
+
+                        const activityIdsToDelete = existingActivityIds.filter(id => !incomingActivityIds.includes(id));
+                        if (activityIdsToDelete.length > 0) {
+                            await connection.query('DELETE FROM project_activities WHERE id IN (?)', [activityIdsToDelete]);
+                        }
+
+                        for(const [actIndex, activity] of activities.entries()) {
+                             const stringifiedActivity = stringifyJsonFields(activity, ['title', 'description']);
+                             const upsertActivityQuery = `
+                                INSERT INTO project_activities (id, date, title, description, imageUrl, project_id, display_order) 
+                                VALUES (?, ?, ?, ?, ?, ?, ?)
+                                ON DUPLICATE KEY UPDATE 
+                                date=VALUES(date), title=VALUES(title), description=VALUES(description), imageUrl=VALUES(imageUrl), project_id=VALUES(project_id), display_order=VALUES(display_order)
+                            `;
+                             await connection.execute(upsertActivityQuery, [
+                                stringifiedActivity.id, stringifiedActivity.date, stringifiedActivity.title, stringifiedActivity.description,
+                                stringifiedActivity.imageUrl, project.id, actIndex
+                             ]);
+                        }
+                    }
+                }
             }
+        } else {
+            console.warn("Skipping projects update due to invalid or missing data.");
         }
         
-        // 5. Update Team Members
-        await connection.execute('DELETE FROM team_members');
-        const insertTeamQuery = 'INSERT INTO team_members (id, name, role, bio, imageUrl, imageAlt, display_order) VALUES (?, ?, ?, ?, ?, ?, ?)';
-        for (const [index, member] of content.team.entries()) {
-            const stringifiedMember = stringifyJsonFields(member, ['name', 'role', 'bio']);
-            await connection.execute(insertTeamQuery, [
-                stringifiedMember.id,
-                stringifiedMember.name,
-                stringifiedMember.role,
-                stringifiedMember.bio,
-                stringifiedMember.imageUrl,
-                stringifiedMember.imageAlt,
-                index
-            ]);
+        // 5. Synchronize Team Members
+        if (content.team && Array.isArray(content.team)) {
+            const [teamCountResult] = await connection.query('SELECT COUNT(*) as count FROM team_members');
+            if ((teamCountResult as any)[0].count > 0 && content.team.length === 0) {
+                console.warn("SAFETY-LOCK: An attempt to save an empty list of team members was blocked to prevent accidental data loss. No changes were made to team members.");
+            } else {
+                const [existingTeamRows] = await connection.query('SELECT id FROM team_members');
+                const existingTeamIds = (existingTeamRows as any[]).map(t => t.id);
+                const incomingTeamIds = content.team.map(t => t.id);
+
+                const teamIdsToDelete = existingTeamIds.filter(id => !incomingTeamIds.includes(id));
+                if (teamIdsToDelete.length > 0) {
+                    await connection.query('DELETE FROM team_members WHERE id IN (?)', [teamIdsToDelete]);
+                }
+
+                for (const [index, member] of content.team.entries()) {
+                    const stringifiedMember = stringifyJsonFields(member, ['name', 'role', 'bio']);
+                    const upsertTeamQuery = `
+                        INSERT INTO team_members (id, name, role, bio, imageUrl, imageAlt, display_order) 
+                        VALUES (?, ?, ?, ?, ?, ?, ?)
+                        ON DUPLICATE KEY UPDATE
+                        name=VALUES(name), role=VALUES(role), bio=VALUES(bio), imageUrl=VALUES(imageUrl), imageAlt=VALUES(imageAlt), display_order=VALUES(display_order)
+                    `;
+                    await connection.execute(upsertTeamQuery, [
+                        stringifiedMember.id, stringifiedMember.name, stringifiedMember.role, stringifiedMember.bio,
+                        stringifiedMember.imageUrl, stringifiedMember.imageAlt, index
+                    ]);
+                }
+            }
+        } else {
+            console.warn("Skipping team members update due to invalid or missing data.");
         }
 
-        // 6. Update Blog Posts
-        await connection.execute('DELETE FROM blog_posts');
-        const insertBlogQuery = 'INSERT INTO blog_posts (id, slug, title, author, date, summary, content, imageUrl, imageAlt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)';
-        for (const post of content.blog) {
-             const stringifiedPost = stringifyJsonFields(post, ['title', 'summary', 'content']);
-             await connection.execute(insertBlogQuery, [
-                stringifiedPost.id,
-                stringifiedPost.slug,
-                stringifiedPost.title,
-                stringifiedPost.author,
-                stringifiedPost.date,
-                stringifiedPost.summary,
-                stringifiedPost.content,
-                stringifiedPost.imageUrl,
-                stringifiedPost.imageAlt
-             ]);
+
+        // 6. Synchronize Blog Posts
+        if (content.blog && Array.isArray(content.blog)) {
+            const [blogCountResult] = await connection.query('SELECT COUNT(*) as count FROM blog_posts');
+            if ((blogCountResult as any)[0].count > 0 && content.blog.length === 0) {
+                console.warn("SAFETY-LOCK: An attempt to save an empty list of blog posts was blocked to prevent accidental data loss. No changes were made to blog posts.");
+            } else {
+                const [existingBlogRows] = await connection.query('SELECT id FROM blog_posts');
+                const existingBlogIds = (existingBlogRows as any[]).map(b => b.id);
+                const incomingBlogIds = content.blog.map(b => b.id);
+
+                const blogIdsToDelete = existingBlogIds.filter(id => !incomingBlogIds.includes(id));
+                if (blogIdsToDelete.length > 0) {
+                    await connection.query('DELETE FROM blog_posts WHERE id IN (?)', [blogIdsToDelete]);
+                }
+
+                for (const post of content.blog) {
+                     const stringifiedPost = stringifyJsonFields(post, ['title', 'summary', 'content']);
+                     const upsertBlogQuery = `
+                        INSERT INTO blog_posts (id, slug, title, author, date, summary, content, imageUrl, imageAlt) 
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        ON DUPLICATE KEY UPDATE
+                        slug=VALUES(slug), title=VALUES(title), author=VALUES(author), date=VALUES(date), summary=VALUES(summary), content=VALUES(content), imageUrl=VALUES(imageUrl), imageAlt=VALUES(imageAlt)
+                     `;
+                     await connection.execute(upsertBlogQuery, [
+                        stringifiedPost.id, stringifiedPost.slug, stringifiedPost.title, stringifiedPost.author, stringifiedPost.date,
+                        stringifiedPost.summary, stringifiedPost.content, stringifiedPost.imageUrl, stringifiedPost.imageAlt
+                     ]);
+                }
+            }
+        } else {
+             console.warn("Skipping blog posts update due to invalid or missing data.");
         }
         
         await connection.commit();
