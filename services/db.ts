@@ -97,7 +97,7 @@ export async function updateContent(content: PageContent): Promise<void> {
     await connection.beginTransaction();
 
     try {
-        // 1. Update Global Content, UI Text, and Static Page Content (These are safe single-row updates)
+        // 1. Update Global Content, UI Text, and Static Page Content
         const globalData = stringifyJsonFields(content.global, ['navigation', 'socialLinks', 'footer']);
         await connection.execute('UPDATE global_content SET logoUrl = ?, navigation = ?, socialLinks = ?, footer = ? WHERE id = 1', [globalData.logoUrl, globalData.navigation, globalData.socialLinks, globalData.footer]);
         await connection.execute('UPDATE ui_text SET texts = ? WHERE id = 1', [JSON.stringify(content.ui)]);
@@ -108,7 +108,7 @@ export async function updateContent(content: PageContent): Promise<void> {
             }
         }
         
-        // --- SURGICAL SYNCHRONIZATION FOR DYNAMIC LISTS ---
+        // --- ROBUST SYNCHRONIZATION FOR DYNAMIC LISTS ---
 
         // 2. Synchronize Projects and Activities
         const [dbProjectsRows] = await connection.query('SELECT id FROM projects');
@@ -128,15 +128,21 @@ export async function updateContent(content: PageContent): Promise<void> {
         for (const [index, project] of (content.projects || []).entries()) {
             const { activities, ...projectData } = project;
             const stringifiedProject = stringifyJsonFields(projectData, ['title', 'description', 'detailDescription']);
-            await connection.query(
-                `INSERT INTO projects (id, title, description, detailDescription, imageUrl, imageAlt, detailImageUrl, display_order)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                 ON DUPLICATE KEY UPDATE 
-                 title = VALUES(title), description = VALUES(description), detailDescription = VALUES(detailDescription), imageUrl = VALUES(imageUrl), 
-                 imageAlt = VALUES(imageAlt), detailImageUrl = VALUES(detailImageUrl), display_order = VALUES(display_order)`,
-                [stringifiedProject.id, stringifiedProject.title, stringifiedProject.description, stringifiedProject.detailDescription, 
-                 stringifiedProject.imageUrl, stringifiedProject.imageAlt, stringifiedProject.detailImageUrl, index]
-            );
+            const [existingProject] = await connection.query('SELECT id FROM projects WHERE id = ?', [stringifiedProject.id]);
+            
+            if ((existingProject as any[]).length > 0) {
+                await connection.execute(
+                    `UPDATE projects SET title = ?, description = ?, detailDescription = ?, imageUrl = ?, imageAlt = ?, detailImageUrl = ?, display_order = ? WHERE id = ?`,
+                    [stringifiedProject.title, stringifiedProject.description, stringifiedProject.detailDescription, 
+                     stringifiedProject.imageUrl, stringifiedProject.imageAlt, stringifiedProject.detailImageUrl, index, stringifiedProject.id]
+                );
+            } else {
+                await connection.execute(
+                    `INSERT INTO projects (id, title, description, detailDescription, imageUrl, imageAlt, detailImageUrl, display_order) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+                    [stringifiedProject.id, stringifiedProject.title, stringifiedProject.description, stringifiedProject.detailDescription, 
+                     stringifiedProject.imageUrl, stringifiedProject.imageAlt, stringifiedProject.detailImageUrl, index]
+                );
+            }
 
             // Synchronize activities for the current project
             const [dbActivitiesRows] = await connection.query('SELECT id FROM project_activities WHERE project_id = ?', [project.id]);
@@ -150,13 +156,19 @@ export async function updateContent(content: PageContent): Promise<void> {
 
             for (const [actIndex, activity] of (activities || []).entries()) {
                 const stringifiedActivity = stringifyJsonFields(activity, ['title', 'description']);
-                await connection.query(
-                    `INSERT INTO project_activities (id, date, title, description, imageUrl, project_id, display_order)
-                     VALUES (?, ?, ?, ?, ?, ?, ?)
-                     ON DUPLICATE KEY UPDATE
-                     date = VALUES(date), title = VALUES(title), description = VALUES(description), imageUrl = VALUES(imageUrl), display_order = VALUES(display_order)`,
-                    [stringifiedActivity.id, stringifiedActivity.date, stringifiedActivity.title, stringifiedActivity.description, stringifiedActivity.imageUrl, project.id, actIndex]
-                );
+                const [existingActivity] = await connection.query('SELECT id FROM project_activities WHERE id = ?', [stringifiedActivity.id]);
+                
+                if ((existingActivity as any[]).length > 0) {
+                    await connection.execute(
+                        `UPDATE project_activities SET date = ?, title = ?, description = ?, imageUrl = ?, display_order = ? WHERE id = ? AND project_id = ?`,
+                        [stringifiedActivity.date, stringifiedActivity.title, stringifiedActivity.description, stringifiedActivity.imageUrl, actIndex, stringifiedActivity.id, project.id]
+                    );
+                } else {
+                    await connection.execute(
+                        `INSERT INTO project_activities (id, date, title, description, imageUrl, project_id, display_order) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+                        [stringifiedActivity.id, stringifiedActivity.date, stringifiedActivity.title, stringifiedActivity.description, stringifiedActivity.imageUrl, project.id, actIndex]
+                    );
+                }
             }
         }
 
@@ -176,15 +188,21 @@ export async function updateContent(content: PageContent): Promise<void> {
 
         for (const [index, member] of (content.team || []).entries()) {
             const stringifiedMember = stringifyJsonFields(member, ['name', 'role', 'bio']);
-            await connection.query(
-                `INSERT INTO team_members (id, name, role, bio, imageUrl, imageAlt, display_order)
-                 VALUES (?, ?, ?, ?, ?, ?, ?)
-                 ON DUPLICATE KEY UPDATE
-                 name = VALUES(name), role = VALUES(role), bio = VALUES(bio), 
-                 imageUrl = VALUES(imageUrl), imageAlt = VALUES(imageAlt), display_order = VALUES(display_order)`,
-                [stringifiedMember.id, stringifiedMember.name, stringifiedMember.role, stringifiedMember.bio, 
-                 stringifiedMember.imageUrl, stringifiedMember.imageAlt, index]
-            );
+            const [existingMember] = await connection.query('SELECT id FROM team_members WHERE id = ?', [stringifiedMember.id]);
+
+            if ((existingMember as any[]).length > 0) {
+                await connection.execute(
+                    `UPDATE team_members SET name = ?, role = ?, bio = ?, imageUrl = ?, imageAlt = ?, display_order = ? WHERE id = ?`,
+                    [stringifiedMember.name, stringifiedMember.role, stringifiedMember.bio, 
+                     stringifiedMember.imageUrl, stringifiedMember.imageAlt, index, stringifiedMember.id]
+                );
+            } else {
+                await connection.execute(
+                    `INSERT INTO team_members (id, name, role, bio, imageUrl, imageAlt, display_order) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+                    [stringifiedMember.id, stringifiedMember.name, stringifiedMember.role, stringifiedMember.bio, 
+                     stringifiedMember.imageUrl, stringifiedMember.imageAlt, index]
+                );
+            }
         }
 
         // 4. Synchronize Blog Posts
@@ -203,15 +221,21 @@ export async function updateContent(content: PageContent): Promise<void> {
         
         for (const post of (content.blog || [])) {
             const stringifiedPost = stringifyJsonFields(post, ['title', 'summary', 'content']);
-            await connection.query(
-                `INSERT INTO blog_posts (id, slug, title, author, date, summary, content, imageUrl, imageAlt)
-                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                 ON DUPLICATE KEY UPDATE
-                 slug = VALUES(slug), title = VALUES(title), author = VALUES(author), date = VALUES(date), 
-                 summary = VALUES(summary), content = VALUES(content), imageUrl = VALUES(imageUrl), imageAlt = VALUES(imageAlt)`,
-                [stringifiedPost.id, stringifiedPost.slug, stringifiedPost.title, stringifiedPost.author, stringifiedPost.date, 
-                 stringifiedPost.summary, stringifiedPost.content, stringifiedPost.imageUrl, stringifiedPost.imageAlt]
-            );
+            const [existingPost] = await connection.query('SELECT id FROM blog_posts WHERE id = ?', [stringifiedPost.id]);
+
+            if ((existingPost as any[]).length > 0) {
+                await connection.execute(
+                    `UPDATE blog_posts SET slug = ?, title = ?, author = ?, date = ?, summary = ?, content = ?, imageUrl = ?, imageAlt = ? WHERE id = ?`,
+                    [stringifiedPost.slug, stringifiedPost.title, stringifiedPost.author, stringifiedPost.date, 
+                     stringifiedPost.summary, stringifiedPost.content, stringifiedPost.imageUrl, stringifiedPost.imageAlt, stringifiedPost.id]
+                );
+            } else {
+                await connection.execute(
+                    `INSERT INTO blog_posts (id, slug, title, author, date, summary, content, imageUrl, imageAlt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                    [stringifiedPost.id, stringifiedPost.slug, stringifiedPost.title, stringifiedPost.author, stringifiedPost.date, 
+                     stringifiedPost.summary, stringifiedPost.content, stringifiedPost.imageUrl, stringifiedPost.imageAlt]
+                );
+            }
         }
         
         await connection.commit();
