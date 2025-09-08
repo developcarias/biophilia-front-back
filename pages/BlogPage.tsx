@@ -1,5 +1,3 @@
-
-
 import React from 'react';
 import * as ReactRouterDOM from 'react-router-dom';
 import { BlogPost, BlogPageContent, UIText } from '../types';
@@ -16,12 +14,14 @@ const BlogPage: React.FC<BlogPageProps> = ({ content, posts, uiText }) => {
   const { language } = useI18n();
   const t = useTranslate();
 
+  if (!content) return null;
+
   if (!posts || posts.length === 0) {
     return (
       <>
         <PageBanner
-          title={content.banner.title[language]}
-          imageUrl={content.banner.imageUrl}
+          title={content.banner?.title?.[language] || 'Blog'}
+          imageUrl={content.banner?.imageUrl || ''}
         />
         <div className="bg-white py-16 text-center">
             <p>{t('noBlogPosts')}</p>
@@ -36,14 +36,14 @@ const BlogPage: React.FC<BlogPageProps> = ({ content, posts, uiText }) => {
   return (
     <>
       <PageBanner
-        title={content.banner.title[language]}
-        imageUrl={content.banner.imageUrl}
+        title={content.banner?.title?.[language] || 'Blog'}
+        imageUrl={content.banner?.imageUrl || ''}
       />
       <div className="bg-white py-16">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
             {/* Featured Post */}
             <div className="mb-16">
-                <h2 className="text-3xl font-bold text-brand-green-dark mb-4 border-b pb-2">{content.featuredPostTitle[language]}</h2>
+                <h2 className="text-3xl font-bold text-brand-green-dark mb-4 border-b pb-2">{content.featuredPostTitle?.[language] || 'Featured Post'}</h2>
                 <ReactRouterDOM.NavLink to={`/blog/${featuredPost.slug}`} className="group block rounded-lg shadow-xl overflow-hidden relative text-white">
                     <img src={featuredPost.imageUrl} alt={featuredPost.imageAlt} className="w-full h-96 object-cover transition-transform duration-500 group-hover:scale-105" />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent"></div>

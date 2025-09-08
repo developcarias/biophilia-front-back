@@ -1,4 +1,3 @@
-
 import React, { useEffect, useRef } from 'react';
 import * as ReactRouterDOM from 'react-router-dom';
 import { Project, ProjectDetailPageContent } from '../types';
@@ -110,7 +109,7 @@ const ProjectDetailPage: React.FC<ProjectDetailPageProps> = ({ projects, content
               to="/projects"
               className="bg-brand-accent text-white px-8 py-3 rounded-md text-lg font-semibold hover:bg-brand-accent/90 transition-transform transform hover:scale-105 shadow-lg"
             >
-              {content.backToProjects[language]}
+              {content?.backToProjects?.[language] || 'Back to All Programs'}
             </ReactRouterDOM.NavLink>
           </div>
         </div>

@@ -3,6 +3,7 @@
 -- Run this script only once after creating the schema with `schema.sql`.
 
 -- Clear existing data to prevent duplicates on re-run during development
+DELETE FROM users;
 DELETE FROM project_activities;
 DELETE FROM projects;
 DELETE FROM team_members;
@@ -10,6 +11,11 @@ DELETE FROM blog_posts;
 DELETE FROM pages_content;
 DELETE FROM ui_text;
 DELETE FROM global_content;
+
+-- SQL para insertar el usuario admin inicial
+-- IMPORTANTE: La contraseña se guarda como texto plano. Para un entorno de producción,
+-- es crucial implementar un sistema de hash de contraseñas (ej. bcrypt) por seguridad.
+INSERT INTO `users` (`username`, `password`) VALUES ('admin', 'password123');
 
 -- 1. GLOBAL CONTENT (Logo, Navigation, Footer, Social Links)
 INSERT INTO `global_content` (`id`, `logoUrl`, `navigation`, `socialLinks`, `footer`) VALUES

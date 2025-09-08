@@ -1,5 +1,3 @@
-
-
 import React from 'react';
 import * as ReactRouterDOM from 'react-router-dom';
 import { Project, ProjectsPageContent, UIText } from '../types';
@@ -20,16 +18,16 @@ const ProjectsPage: React.FC<ProjectsPageProps> = ({ content, projects, uiText }
   return (
     <>
       <PageBanner
-        title={content.banner.title[language]}
-        imageUrl={content.banner.imageUrl}
+        title={content.banner?.title?.[language] || 'Our Programs'}
+        imageUrl={content.banner?.imageUrl || ''}
         basePath="projectsPage.banner.title"
-        localizedText={content.banner.title}
+        localizedText={content.banner?.title}
       />
       <div className="bg-white py-16">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="max-w-3xl mx-auto text-center mb-12">
-            <Editable localizedText={content.intro} basePath="projectsPage.intro" multiline>
-              <p className="text-xl text-brand-gray">{content.intro[language]}</p>
+            <Editable localizedText={content.intro || {en:'',es:''}} basePath="projectsPage.intro" multiline>
+              <p className="text-xl text-brand-gray">{content.intro?.[language]}</p>
             </Editable>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-16 pt-8">

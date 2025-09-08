@@ -1,8 +1,7 @@
 
-
 import React, { useState, useEffect } from 'react';
 import * as ReactRouterDOM from 'react-router-dom';
-import { PageContent } from './types';
+import { PageContent, User } from './types';
 import { INITIAL_CONTENT } from './constants';
 import Header from './components/Header';
 import Footer from './components/Footer';
@@ -21,24 +20,44 @@ import BlogPostPage from './pages/BlogPostPage';
 import ContactPage from './pages/ContactPage';
 import ScrollToTop from './components/ScrollToTop';
 import { AdminProvider } from './components/AdminContext';
+import { produce } from 'immer';
+import MediaLibrary from './components/MediaLibrary';
 
 const AppContent = () => {
-  const [content, setContent] = useState<PageContent>(INITIAL_CONTENT);
+  const [displayContent, setDisplayContent] = useState<PageContent>(INITIAL_CONTENT);
+  const [editableContent, setEditableContent] = useState<PageContent>(INITIAL_CONTENT);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
   const navigate = ReactRouterDOM.useNavigate();
+
+  const [isMediaLibraryOpen, setIsMediaLibraryOpen] = useState(false);
+  const [mediaTarget, setMediaTarget] = useState('');
 
   const API_URL = ''; // Use relative path for proxy
 
   useEffect(() => {
+    // Check for saved login state
+    try {
+      const savedUser = localStorage.getItem('biophilia-admin-user');
+      if (savedUser) {
+        setCurrentUser(JSON.parse(savedUser));
+        setIsLoggedIn(true);
+      }
+    } catch (error) {
+      console.error("Failed to parse saved user data:", error);
+      localStorage.removeItem('biophilia-admin-user');
+    }
+
     const fetchContent = async () => {
       try {
         const response = await fetch(`${API_URL}/api/content`);
+        if (!response.ok) throw new Error('Failed to fetch content');
         const data = await response.json();
-        setContent(data);
+        setDisplayContent(data);
+        setEditableContent(JSON.parse(JSON.stringify(data))); // Deep copy for editing
       } catch (error) {
         console.error("Failed to fetch content from backend:", error);
-        // Fallback to initial content or show an error message
       } finally {
         setIsLoading(false);
       }
@@ -46,27 +65,33 @@ const AppContent = () => {
     fetchContent();
   }, []);
 
-  const handleLogin = () => {
+  const handleLogin = (user: User) => {
     setIsLoggedIn(true);
+    setCurrentUser(user);
+    localStorage.setItem('biophilia-admin-user', JSON.stringify(user));
     navigate('/admin');
   };
 
   const handleLogout = () => {
     setIsLoggedIn(false);
+    setCurrentUser(null);
+    localStorage.removeItem('biophilia-admin-user');
     navigate('/');
   };
   
-  const handleUpdateContent = async (newContent: PageContent) => {
+  const handleUpdateAndSave = async (contentToSave: PageContent) => {
     try {
         const response = await fetch(`${API_URL}/api/content`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(newContent),
+            body: JSON.stringify(contentToSave),
         });
-        if (!response.ok) {
-            throw new Error('Failed to save content');
-        }
-        setContent(newContent); // Optimistic update
+        if (!response.ok) throw new Error('Failed to save content');
+        
+        const savedContentCopy = JSON.parse(JSON.stringify(contentToSave));
+        setDisplayContent(savedContentCopy);
+        setEditableContent(savedContentCopy); // Keep editable content in sync with saved content
+        
         return true; // Indicate success
     } catch (error) {
         console.error("Error saving content:", error);
@@ -75,37 +100,78 @@ const AppContent = () => {
     }
   };
 
+  const handleFieldUpdate = (path: string, value: any) => {
+      setEditableContent(produce(draft => {
+        const keys = path.split('.');
+        let current: any = draft;
+        for (let i = 0; i < keys.length - 1; i++) {
+          if (current === undefined) return;
+          current = current[keys[i]];
+        }
+        if (current) {
+          current[keys[keys.length - 1]] = value;
+        }
+      }));
+  };
+
+  const openMediaLibrary = (path: string) => {
+    setMediaTarget(path);
+    setIsMediaLibraryOpen(true);
+  };
+
+  const onMediaSelect = (url: string) => {
+    handleFieldUpdate(mediaTarget, url);
+    setIsMediaLibraryOpen(false);
+  };
+  
   if (isLoading) {
       return <div className="h-screen w-full flex items-center justify-center bg-brand-green-dark text-white text-2xl">Loading Biophilia Institute...</div>
   }
+  
+  // When logged in, render the editable content for a live preview experience.
+  // Otherwise, render the public, saved content.
+  const contentToRender = isLoggedIn ? editableContent : displayContent;
 
   return (
-    <AdminProvider isLoggedIn={isLoggedIn} onUpdate={() => {}}>
+    <AdminProvider
+      isLoggedIn={isLoggedIn}
+      onUpdate={handleFieldUpdate}
+      currentUser={currentUser}
+      openMediaLibrary={openMediaLibrary}
+    >
+      {isMediaLibraryOpen && (
+        <MediaLibrary
+            apiUrl={API_URL}
+            onSelect={onMediaSelect}
+            onClose={() => setIsMediaLibraryOpen(false)}
+        />
+      )}
       <div className="bg-brand-green-light min-h-screen flex flex-col font-sans text-brand-gray">
         {isLoggedIn && <AdminBar onLogout={handleLogout} />}
         <Header 
-          content={content.global}
-          uiText={content.ui}
+          content={contentToRender.global}
+          uiText={contentToRender.ui}
         />
         <main className="flex-grow">
           <ReactRouterDOM.Routes>
-            <ReactRouterDOM.Route path="/" element={<HomePage content={content.homePage} uiText={content.ui} projects={content.projects} />} />
-            <ReactRouterDOM.Route path="/about" element={<AboutPage content={content.aboutPage} valuesContent={content.homePage.values || {title: {en: 'Our Values', es: 'Nuestros Valores'}, items: []}} />} />
-            <ReactRouterDOM.Route path="/projects" element={<ProjectsPage content={content.projectsPage} projects={content.projects} uiText={content.ui} />} />
-            <ReactRouterDOM.Route path="/projects/:projectId" element={<ProjectDetailPage projects={content.projects} content={content.projectDetailPage} />} />
-            <ReactRouterDOM.Route path="/team" element={<TeamPage content={content.teamPage} team={content.team} />} />
-            <ReactRouterDOM.Route path="/blog" element={<BlogPage content={content.blogPage} posts={content.blog} uiText={content.ui} />} />
-            <ReactRouterDOM.Route path="/blog/:slug" element={<BlogPostPage content={content.blogPage} posts={content.blog} uiText={content.ui} />} />
-            <ReactRouterDOM.Route path="/contact" element={<ContactPage content={content.contactPage} globalContent={content.global} apiUrl={API_URL} />} />
-            <ReactRouterDOM.Route path="/donate" element={<DonatePage content={content.donatePage} />} />
+            <ReactRouterDOM.Route path="/" element={<HomePage content={contentToRender.homePage} uiText={contentToRender.ui} projects={contentToRender.projects} />} />
+            <ReactRouterDOM.Route path="/about" element={<AboutPage content={contentToRender.aboutPage} valuesContent={contentToRender.homePage.values || {title: {en: 'Our Values', es: 'Nuestros Valores'}, items: []}} />} />
+            <ReactRouterDOM.Route path="/projects" element={<ProjectsPage content={contentToRender.projectsPage} projects={contentToRender.projects} uiText={contentToRender.ui} />} />
+            <ReactRouterDOM.Route path="/projects/:projectId" element={<ProjectDetailPage projects={contentToRender.projects} content={contentToRender.projectDetailPage} />} />
+            <ReactRouterDOM.Route path="/team" element={<TeamPage content={contentToRender.teamPage} team={contentToRender.team} />} />
+            <ReactRouterDOM.Route path="/blog" element={<BlogPage content={contentToRender.blogPage} posts={contentToRender.blog} uiText={contentToRender.ui} />} />
+            <ReactRouterDOM.Route path="/blog/:slug" element={<BlogPostPage content={contentToRender.blogPage} posts={contentToRender.blog} uiText={contentToRender.ui} />} />
+            <ReactRouterDOM.Route path="/contact" element={<ContactPage content={contentToRender.contactPage} globalContent={contentToRender.global} apiUrl={API_URL} />} />
+            <ReactRouterDOM.Route path="/donate" element={<DonatePage content={contentToRender.donatePage} />} />
             <ReactRouterDOM.Route path="/login" element={<LoginPage onLoginSuccess={handleLogin} />} />
             <ReactRouterDOM.Route 
               path="/admin" 
               element={
                 isLoggedIn ? 
                   <AdminPage 
-                    content={content} 
-                    onUpdateContent={handleUpdateContent} 
+                    content={editableContent} 
+                    onUpdateContent={handleUpdateAndSave} 
+                    onDiscardChanges={() => setEditableContent(JSON.parse(JSON.stringify(displayContent)))}
                     apiUrl={API_URL}
                   /> : 
                   <ReactRouterDOM.Navigate to="/login" />
@@ -115,10 +181,10 @@ const AppContent = () => {
         </main>
         <div 
           className="bg-cover bg-center bg-fixed" 
-          style={{backgroundImage: `url('${content.homePage?.parallax2?.imageUrl || ''}')`}}
+          style={{backgroundImage: `url('${contentToRender.homePage?.parallax2?.imageUrl || ''}')`}}
         >
           <Footer 
-            content={content.global} 
+            content={contentToRender.global} 
           />
         </div>
       </div>

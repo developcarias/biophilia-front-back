@@ -1,24 +1,33 @@
+// FIX: Corrected express import to include Request and Response types for proper typing in route handlers.
 import express, { Request, Response } from 'express';
 import cors from 'cors';
 import multer from 'multer';
+import { GoogleGenAI } from '@google/genai';
 import { config } from './config';
-import { getContent, updateContent } from './services/db';
+import { getContent, updateContent, getUserByUsername, getAllUsers, createUser, updateUser, deleteUser } from './services/db';
 import { listFiles, uploadFile, deleteFile } from './services/ftp';
 import { sendContactEmail } from './services/email';
+import { User } from './types';
 
 const app = express();
 
 app.use(cors());
-// FIX: Add path to resolve middleware overload ambiguity.
-app.use('/', express.json({ limit: '50mb' }));
+app.use(express.json({ limit: '50mb' }));
 
-// Configure multer for file uploads
 const upload = multer({ storage: multer.memoryStorage() });
+
+// Initialize Gemini
+let ai: GoogleGenAI | null = null;
+if (process.env.API_KEY) {
+    ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+} else {
+    console.warn("API_KEY environment variable not set on the server. AI features will be disabled.");
+}
 
 // --- API ROUTES ---
 
 // Content Management
-app.get('/api/content', async (req, res) => {
+app.get('/api/content', async (req: Request, res: Response) => {
     try {
         const content = await getContent();
         res.json(content);
@@ -28,7 +37,7 @@ app.get('/api/content', async (req, res) => {
     }
 });
 
-app.put('/api/content', async (req, res) => {
+app.put('/api/content', async (req: Request, res: Response) => {
     try {
         await updateContent(req.body);
         res.status(200).json({ message: 'Content updated successfully.' });
@@ -38,8 +47,73 @@ app.put('/api/content', async (req, res) => {
     }
 });
 
+// User Authentication & Management
+app.post('/api/login', async (req: Request, res: Response) => {
+    try {
+        const { username, password } = req.body;
+        const user = await getUserByUsername(username);
+        // IMPORTANT: In a real app, passwords should be hashed and compared securely.
+        if (user && user.password === password) {
+            const { password: _, ...userWithoutPassword } = user;
+            res.json(userWithoutPassword);
+        } else {
+            res.status(401).json({ message: 'Invalid username or password' });
+        }
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Server error during login' });
+    }
+});
+
+app.get('/api/users', async (req: Request, res: Response) => {
+    try {
+        const users = await getAllUsers();
+        res.json(users);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Failed to fetch users' });
+    }
+});
+
+app.post('/api/users', async (req: Request, res: Response) => {
+    try {
+        const newUser: Omit<User, 'id'> = req.body;
+        const createdUser = await createUser(newUser);
+        res.status(201).json(createdUser);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Failed to create user' });
+    }
+});
+
+app.put('/api/users/:id', async (req: Request, res: Response) => {
+    try {
+        const userId = parseInt(req.params.id, 10);
+        const userUpdates: Partial<User> = req.body;
+        await updateUser(userId, userUpdates);
+        res.status(200).json({ message: 'User updated successfully' });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Failed to update user' });
+    }
+});
+
+app.delete('/api/users/:id', async (req: Request, res: Response) => {
+    try {
+        const userId = parseInt(req.params.id, 10);
+        // A real app would get current user from a token, but for now we trust the client-side check.
+        // A backend check `if (userId === currentUserIdFromToken)` would be essential.
+        await deleteUser(userId);
+        res.status(200).json({ message: 'User deleted successfully' });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Failed to delete user' });
+    }
+});
+
+
 // Media Library (FTP)
-app.get('/api/media', async (req, res) => {
+app.get('/api/media', async (req: Request, res: Response) => {
     try {
         const files = await listFiles();
         res.json(files);
@@ -49,7 +123,6 @@ app.get('/api/media', async (req, res) => {
     }
 });
 
-// FIX: Add explicit types to the request handler to resolve overload issue.
 app.post('/api/media/upload', upload.single('file'), async (req: Request, res: Response) => {
     const file = req.file;
     if (!file) {
@@ -64,7 +137,7 @@ app.post('/api/media/upload', upload.single('file'), async (req: Request, res: R
     }
 });
 
-app.delete('/api/media/:filename', async (req, res) => {
+app.delete('/api/media/:filename', async (req: Request, res: Response) => {
     try {
         await deleteFile(req.params.filename);
         res.status(200).json({ message: 'File deleted successfully.' });
@@ -76,7 +149,7 @@ app.delete('/api/media/:filename', async (req, res) => {
 
 
 // Contact Form (SMTP)
-app.post('/api/contact', async (req, res) => {
+app.post('/api/contact', async (req: Request, res: Response) => {
     const { name, email, message } = req.body;
     if (!name || !email || !message) {
         return res.status(400).json({ message: 'All fields are required.' });
@@ -87,6 +160,34 @@ app.post('/api/contact', async (req, res) => {
     } catch (error) {
         console.error(error);
         res.status(500).json({ message: 'Failed to send message.' });
+    }
+});
+
+// Gemini AI Text Generation
+app.post('/api/generate-text', async (req: Request, res: Response) => {
+    if (!ai) {
+        return res.status(503).json({ message: "AI service is not configured on the server." });
+    }
+
+    const { prompt, language } = req.body;
+    if (!prompt || !language) {
+        return res.status(400).json({ message: "Prompt and language are required." });
+    }
+    
+    const languageName = language === 'es' ? 'Spanish' : 'English';
+    
+    try {
+        const response = await ai.models.generateContent({
+            model: "gemini-2.5-flash",
+            contents: prompt,
+            config: {
+                systemInstruction: `You are a professional copywriter for an environmental non-profit foundation named Biophilia. Write content that is inspiring, hopeful, clear, and action-oriented. Keep paragraphs concise. Your response MUST be in ${languageName}.`,
+            }
+        });
+        res.json({ text: response.text });
+    } catch (error) {
+        console.error("Error with Gemini API:", error);
+        res.status(500).json({ message: "Failed to generate text from AI service." });
     }
 });
 

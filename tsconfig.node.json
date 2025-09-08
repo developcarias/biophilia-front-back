@@ -4,7 +4,7 @@
     "composite": true,
     "skipLibCheck": true,
     "module": "CommonJS",
-    "moduleResolution": "bundler",
+    "moduleResolution": "node",
     "allowSyntheticDefaultImports": true,
     "strict": true,
     "esModuleInterop": true,

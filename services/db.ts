@@ -1,6 +1,6 @@
 import mysql from 'mysql2/promise';
 import { config } from '../config';
-import { PageContent } from '../types';
+import { PageContent, User } from '../types';
 
 const pool = mysql.createPool(config.db);
 
@@ -54,7 +54,16 @@ export async function getContent(): Promise<PageContent> {
         
         const pagesContent: any = {};
         (pagesRows as any[]).forEach(row => {
-            pagesContent[row.page_name] = JSON.parse(row.content || '{}');
+            try {
+                // The content column can sometimes contain unescaped control characters from manual DB entries.
+                // This will cause JSON.parse to fail. We try to parse it as is, but have a fallback.
+                pagesContent[row.page_name] = JSON.parse(row.content || '{}');
+            } catch (error) {
+                console.error(`Could not parse content for page "${row.page_name}". It may contain invalid JSON characters. Error: ${error}`);
+                // Fallback to an empty object for the corrupted page to prevent the whole app from crashing.
+                // The user can then fix the content in the admin panel and save it, which will correct the JSON in the DB.
+                pagesContent[row.page_name] = {};
+            }
         });
 
         const parsedActivities = parseJsonFields(allActivitiesRows, ['title', 'description']);
@@ -94,7 +103,8 @@ export async function updateContent(content: PageContent): Promise<void> {
         
         // 1. Update Global Content
         const globalData = stringifyJsonFields(content.global, ['navigation', 'socialLinks', 'footer']);
-        await connection.execute('UPDATE global_content SET ? WHERE id = 1', [globalData]);
+        const updateGlobalQuery = 'UPDATE global_content SET logoUrl = ?, navigation = ?, socialLinks = ?, footer = ? WHERE id = 1';
+        await connection.execute(updateGlobalQuery, [globalData.logoUrl, globalData.navigation, globalData.socialLinks, globalData.footer]);
 
         // 2. Update UI Text
         await connection.execute('UPDATE ui_text SET texts = ? WHERE id = 1', [JSON.stringify(content.ui)]);
@@ -110,29 +120,68 @@ export async function updateContent(content: PageContent): Promise<void> {
         // 4. Update Projects and Activities (Clear and re-insert)
         await connection.execute('DELETE FROM project_activities');
         await connection.execute('DELETE FROM projects');
+        const insertProjectQuery = 'INSERT INTO projects (id, title, description, imageUrl, imageAlt, detailImageUrl, display_order) VALUES (?, ?, ?, ?, ?, ?, ?)';
+        const insertActivityQuery = 'INSERT INTO project_activities (id, date, title, description, imageUrl, project_id, display_order) VALUES (?, ?, ?, ?, ?, ?, ?)';
+        
         for (const [index, project] of content.projects.entries()) {
             const { activities, ...projectData } = project;
             const stringifiedProject = stringifyJsonFields(projectData, ['title', 'description']);
-            await connection.execute('INSERT INTO projects SET ?', [{ ...stringifiedProject, display_order: index }]);
+            await connection.execute(insertProjectQuery, [
+                stringifiedProject.id, 
+                stringifiedProject.title, 
+                stringifiedProject.description, 
+                stringifiedProject.imageUrl, 
+                stringifiedProject.imageAlt, 
+                stringifiedProject.detailImageUrl, 
+                index
+            ]);
             
             for(const [actIndex, activity] of activities.entries()) {
                  const stringifiedActivity = stringifyJsonFields(activity, ['title', 'description']);
-                 await connection.execute('INSERT INTO project_activities SET ?', [{ ...stringifiedActivity, project_id: project.id, display_order: actIndex }]);
+                 await connection.execute(insertActivityQuery, [
+                    stringifiedActivity.id,
+                    stringifiedActivity.date,
+                    stringifiedActivity.title,
+                    stringifiedActivity.description,
+                    stringifiedActivity.imageUrl,
+                    project.id,
+                    actIndex
+                 ]);
             }
         }
         
         // 5. Update Team Members
         await connection.execute('DELETE FROM team_members');
+        const insertTeamQuery = 'INSERT INTO team_members (id, name, role, bio, imageUrl, imageAlt, display_order) VALUES (?, ?, ?, ?, ?, ?, ?)';
         for (const [index, member] of content.team.entries()) {
             const stringifiedMember = stringifyJsonFields(member, ['name', 'role', 'bio']);
-            await connection.execute('INSERT INTO team_members SET ?', [{ ...stringifiedMember, display_order: index }]);
+            await connection.execute(insertTeamQuery, [
+                stringifiedMember.id,
+                stringifiedMember.name,
+                stringifiedMember.role,
+                stringifiedMember.bio,
+                stringifiedMember.imageUrl,
+                stringifiedMember.imageAlt,
+                index
+            ]);
         }
 
         // 6. Update Blog Posts
         await connection.execute('DELETE FROM blog_posts');
+        const insertBlogQuery = 'INSERT INTO blog_posts (id, slug, title, author, date, summary, content, imageUrl, imageAlt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)';
         for (const post of content.blog) {
              const stringifiedPost = stringifyJsonFields(post, ['title', 'summary', 'content']);
-             await connection.execute('INSERT INTO blog_posts SET ?', [stringifiedPost]);
+             await connection.execute(insertBlogQuery, [
+                stringifiedPost.id,
+                stringifiedPost.slug,
+                stringifiedPost.title,
+                stringifiedPost.author,
+                stringifiedPost.date,
+                stringifiedPost.summary,
+                stringifiedPost.content,
+                stringifiedPost.imageUrl,
+                stringifiedPost.imageAlt
+             ]);
         }
         
         await connection.commit();
@@ -142,4 +191,37 @@ export async function updateContent(content: PageContent): Promise<void> {
     } finally {
         connection.release();
     }
+}
+
+// --- User Management ---
+export async function getUserByUsername(username: string): Promise<User | null> {
+    const [rows] = await pool.execute('SELECT * FROM users WHERE username = ?', [username]);
+    return (rows as any)[0] || null;
+}
+
+export async function getAllUsers(): Promise<User[]> {
+    const [rows] = await pool.execute('SELECT id, username FROM users');
+    return rows as User[];
+}
+
+export async function createUser(user: Omit<User, 'id'>): Promise<User> {
+    const { username, password } = user;
+    const [result] = await pool.execute('INSERT INTO users (username, password) VALUES (?, ?)', [username, password]);
+    const insertId = (result as any).insertId;
+    return { id: insertId, username };
+}
+
+export async function updateUser(id: number, updates: Partial<User>): Promise<void> {
+    const { username, password } = updates;
+    if (password && username) {
+        await pool.execute('UPDATE users SET username = ?, password = ? WHERE id = ?', [username, password, id]);
+    } else if (username) {
+        await pool.execute('UPDATE users SET username = ? WHERE id = ?', [username, id]);
+    } else if (password) {
+        await pool.execute('UPDATE users SET password = ? WHERE id = ?', [password, id]);
+    }
+}
+
+export async function deleteUser(id: number): Promise<void> {
+    await pool.execute('DELETE FROM users WHERE id = ?', [id]);
 }

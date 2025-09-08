@@ -24,20 +24,20 @@ const ContentBlock: React.FC<ContentBlockProps> = ({
 
   const imageEl = (
     <div className="w-full md:w-5/12 p-4 flex">
-      <img src={imageUrl} alt={imageAlt} className="rounded-lg shadow-xl object-cover w-full max-h-[450px]" />
+      <img src={imageUrl || ''} alt={imageAlt || ''} className="rounded-lg shadow-xl object-cover w-full max-h-[450px]" />
     </div>
   );
 
   const textEl = (
     <div className="w-full md:w-7/12 flex flex-col justify-center px-8 md:px-12 py-8">
       <div className="relative group">
-        <Editable localizedText={title} basePath={`${basePath}.title`}>
-          <h2 className="text-3xl font-bold text-brand-green-dark mb-6">{title[language]}</h2>
+        <Editable localizedText={title || {en: '', es: ''}} basePath={`${basePath}.title`}>
+          <h2 className="text-3xl font-bold text-brand-green-dark mb-6">{title?.[language]}</h2>
         </Editable>
       </div>
       <div className="relative group mt-4">
-        <Editable localizedText={text} basePath={`${basePath}.text`} multiline>
-          <p className="mt-4 text-lg leading-relaxed whitespace-pre-line">{text[language]}</p>
+        <Editable localizedText={text || {en: '', es: ''}} basePath={`${basePath}.text`} multiline>
+          <p className="mt-4 text-lg leading-relaxed whitespace-pre-line">{text?.[language]}</p>
         </Editable>
       </div>
     </div>

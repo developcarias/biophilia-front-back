@@ -1,28 +1,47 @@
 
 
+
 import React, { useState } from 'react';
-// FIX: Changed to namespace import to resolve module resolution issues with react-router-dom.
 import * as ReactRouterDOM from 'react-router-dom';
 import { useTranslate } from '../i18n';
 import PageBanner from '../components/PageBanner';
+import { User } from '../types';
 
 interface LoginPageProps {
-  onLoginSuccess: () => void;
+  onLoginSuccess: (user: User) => void;
 }
 
 const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
   const t = useTranslate();
   const navigate = ReactRouterDOM.useNavigate();
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (username === 'admin' && password === 'password123') {
-      onLoginSuccess();
-    } else {
-      setError(t('loginError'));
+    setIsLoading(true);
+    setError('');
+    
+    try {
+      const response = await fetch('/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password }),
+      });
+
+      if (response.ok) {
+        const user = await response.json();
+        onLoginSuccess(user);
+      } else {
+        const data = await response.json();
+        setError(data.message || t('loginError'));
+      }
+    } catch (err) {
+      setError('A network error occurred. Please try again.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -67,9 +86,10 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
                 <div className="flex items-center justify-between">
                   <button
                     type="submit"
-                    className="bg-brand-green-dark hover:bg-brand-green-dark/90 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+                    disabled={isLoading}
+                    className="bg-brand-green-dark hover:bg-brand-green-dark/90 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline disabled:bg-gray-400"
                   >
-                    {t('signIn')}
+                    {isLoading ? 'Signing In...' : t('signIn')}
                   </button>
                   <button
                     type="button"

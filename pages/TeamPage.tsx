@@ -1,5 +1,3 @@
-
-
 import React from 'react';
 import { TeamMember, TeamPageContent } from '../types';
 import PageBanner from '../components/PageBanner';
@@ -17,10 +15,10 @@ const TeamPage: React.FC<TeamPageProps> = ({ content, team }) => {
   return (
     <>
       <PageBanner
-        title={content.banner.title[language]}
-        imageUrl={content.banner.imageUrl}
+        title={content?.banner?.title?.[language] || 'Our Team'}
+        imageUrl={content?.banner?.imageUrl || ''}
         basePath="teamPage.banner.title"
-        localizedText={content.banner.title}
+        localizedText={content?.banner?.title}
       />
       <div className="bg-white py-16">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">

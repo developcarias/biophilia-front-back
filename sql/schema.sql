@@ -1,3 +1,10 @@
+-- SQL para crear la tabla de usuarios
+CREATE TABLE `users` (
+  `id` INT AUTO_INCREMENT PRIMARY KEY,
+  `username` VARCHAR(255) NOT NULL UNIQUE,
+  `password` VARCHAR(255) NOT NULL
+);
+
 CREATE TABLE `global_content` (
   `id` int NOT NULL AUTO_INCREMENT,
   `logoUrl` varchar(255) DEFAULT NULL,

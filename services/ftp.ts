@@ -1,7 +1,7 @@
 
 import * as ftp from 'basic-ftp';
-// FIX: The Buffer type is globally available in Node.js, so this import is not needed.
-// import { Buffer } from 'buffer';
+// FIX: Import Buffer to resolve 'Cannot find name' error.
+import { Buffer } from 'buffer';
 import { Readable } from 'stream';
 import { config } from '../config';
 

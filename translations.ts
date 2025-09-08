@@ -5,11 +5,13 @@ export const translations = {
     logout: 'Logout',
     cancel: 'Cancel',
     remove: 'Remove',
+    save: 'Save',
+    edit: 'Edit',
+    delete: 'Delete',
     quickLinks: 'Quick Links',
     contact: 'Contact',
     followUs: 'Follow Us',
     navDonate: 'Donate',
-    // FIX: Added readMore key
     readMore: 'Read More',
     noBlogPosts: 'No blog posts available yet.',
     
@@ -39,6 +41,7 @@ export const translations = {
     tabBlog: 'Blog',
     tabContact: 'Contact',
     tabDonate: 'Donate',
+    tabUsers: 'Users',
 
     // Admin Page Sections & Labels
     sectionNavigation: 'Navigation Links',
@@ -65,6 +68,7 @@ export const translations = {
     addNewTeamMember: 'Add New Team Member',
     addNewPost: 'Add New Blog Post',
     addNewLink: 'Add New Link',
+    addNewUser: 'Add New User',
     
     titleEn: 'Title (EN)',
     titleEs: 'Title (ES)',
@@ -94,6 +98,15 @@ export const translations = {
     url: 'URL',
     labelEn: 'Label (EN)',
     labelEs: 'Label (ES)',
+    
+    // User Management
+    userManagement: 'User Management',
+    username: 'Username',
+    password: 'Password',
+    confirmDeleteUser: 'Are you sure you want to delete this user? This action cannot be undone.',
+    userDeleted: 'User deleted successfully.',
+    userCreated: 'User created successfully.',
+    userUpdated: 'User updated successfully.',
 
   },
   es: {
@@ -101,11 +114,13 @@ export const translations = {
     logout: 'Cerrar Sesión',
     cancel: 'Cancelar',
     remove: 'Eliminar',
+    save: 'Guardar',
+    edit: 'Editar',
+    delete: 'Borrar',
     quickLinks: 'Enlaces Rápidos',
     contact: 'Contacto',
     followUs: 'Síguenos',
     navDonate: 'Donar',
-    // FIX: Added readMore key
     readMore: 'Leer Más',
     noBlogPosts: 'Aún no hay artículos de blog disponibles.',
 
@@ -135,6 +150,7 @@ export const translations = {
     tabBlog: 'Blog',
     tabContact: 'Contacto',
     tabDonate: 'Donar',
+    tabUsers: 'Usuarios',
 
     // Admin Page Sections & Labels
     sectionNavigation: 'Enlaces de Navegación',
@@ -161,6 +177,7 @@ export const translations = {
     addNewTeamMember: 'Agregar Miembro del Equipo',
     addNewPost: 'Agregar Entrada de Blog',
     addNewLink: 'Agregar Nuevo Enlace',
+    addNewUser: 'Agregar Nuevo Usuario',
 
     titleEn: 'Título (EN)',
     titleEs: 'Título (ES)',
@@ -190,5 +207,14 @@ export const translations = {
     url: 'URL',
     labelEn: 'Etiqueta (EN)',
     labelEs: 'Etiqueta (ES)',
+
+    // User Management
+    userManagement: 'Gestión de Usuarios',
+    username: 'Nombre de usuario',
+    password: 'Contraseña',
+    confirmDeleteUser: '¿Estás seguro de que quieres eliminar este usuario? Esta acción no se puede deshacer.',
+    userDeleted: 'Usuario eliminado con éxito.',
+    userCreated: 'Usuario creado con éxito.',
+    userUpdated: 'Usuario actualizado con éxito.',
   }
 };

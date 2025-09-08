@@ -3,10 +3,9 @@
   "name": "biophilia-fullstack",
   "version": "1.0.0",
   "description": "Full-stack application for the Biophilia Institute website.",
-  "type": "module",
   "scripts": {
     "dev": "vite",
-    "start:backend": "ts-node-dev --respawn --transpile-only --project tsconfig.server.json server.ts",
+"start:backend": "ts-node-dev --respawn --transpile-only --project tsconfig.node.json server.ts",
     "build": "tsc && vite build",
     "preview": "vite preview"
   },
