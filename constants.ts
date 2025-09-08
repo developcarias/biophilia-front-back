@@ -1,5 +1,4 @@
 
-
 import { PageContent } from './types';
 
 // This is a placeholder for the initial structure.
@@ -51,7 +50,6 @@ export const INITIAL_CONTENT: PageContent = {
       text: { en: '', es: '' },
       imageUrl: ''
     },
-    // FIX: Added missing 'values' property to satisfy the HomePageContent interface.
     values: {
       title: { en: '', es: '' },
       items: []
@@ -72,13 +70,60 @@ export const INITIAL_CONTENT: PageContent = {
       imageUrl: ''
     }
   },
-  aboutPage: {} as any,
-  projectsPage: {} as any,
-  projectDetailPage: {} as any,
-  teamPage: {} as any,
-  blogPage: {} as any,
-  contactPage: {} as any,
-  donatePage: {} as any,
+  aboutPage: {
+    banner: { title: { en: '', es: '' }, imageUrl: '' },
+    history: { title: { en: '', es: '' }, text: { en: '', es: '' }, imageUrl: '' },
+    mission: { title: { en: '', es: '' }, text: { en: '', es: '' }, imageUrl: '', imageAlt: '' },
+    vision: { title: { en: '', es: '' }, text: { en: '', es: '' }, imageUrl: '', imageAlt: '' },
+    work: { title: { en: '', es: '' }, text: { en: '', es: '' }, imageUrl: '', imageAlt: '' },
+  },
+  projectsPage: {
+    banner: { title: { en: '', es: '' }, imageUrl: '' },
+    intro: { en: '', es: '' },
+  },
+  projectDetailPage: {
+    backToProjects: { en: '', es: '' },
+  },
+  teamPage: {
+    banner: { title: { en: '', es: '' }, imageUrl: '' },
+  },
+  blogPage: {
+    banner: { title: { en: '', es: '' }, imageUrl: '' },
+    featuredPostTitle: { en: '', es: '' },
+    recentPostsTitle: { en: '', es: '' },
+    sharePostTitle: { en: '', es: '' },
+  },
+  contactPage: {
+    banner: { title: { en: '', es: '' }, imageUrl: '' },
+    intro: { en: '', es: '' },
+    addressTitle: { en: '', es: '' },
+    phoneTitle: { en: '', es: '' },
+    emailTitle: { en: '', es: '' },
+    form: {
+      title: { en: '', es: '' },
+      nameLabel: { en: '', es: '' },
+      emailLabel: { en: '', es: '' },
+      messageLabel: { en: '', es: '' },
+      buttonText: { en: '', es: '' },
+    },
+  },
+  donatePage: {
+    banner: { title: { en: '', es: '' }, imageUrl: '' },
+    intro: { en: '', es: '' },
+    form: {
+      chooseAmount: { en: '', es: '' },
+      customAmount: { en: '', es: '' },
+      firstName: { en: '', es: '' },
+      lastName: { en: '', es: '' },
+      emailAddress: { en: '', es: '' },
+      paymentPlaceholder: { en: '', es: '' },
+      donateAmount: { en: '', es: '' },
+    },
+    thankYou: {
+      title: { en: '', es: '' },
+      text: { en: '', es: '' },
+    },
+  },
   projects: [],
   team: [],
   blog: []

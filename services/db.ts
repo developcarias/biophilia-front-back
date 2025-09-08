@@ -1,9 +1,41 @@
-
 import mysql from 'mysql2/promise';
 import { config } from '../config';
 import { PageContent } from '../types';
 
 const pool = mysql.createPool(config.db);
+
+// Helper to parse JSON fields from a database row or array of rows
+const parseJsonFields = (data: any, fields: string[]): any => {
+    if (!data) return data;
+    if (Array.isArray(data)) {
+        return data.map(item => parseJsonFields(item, fields));
+    }
+    const parsedData = { ...data };
+    for (const field of fields) {
+        if (parsedData[field] && typeof parsedData[field] === 'string') {
+            try {
+                parsedData[field] = JSON.parse(parsedData[field]);
+            } catch (e) {
+                console.error(`Failed to parse JSON for field ${field} in item ID ${parsedData.id}:`, parsedData[field]);
+                // Keep it as a string if parsing fails, to avoid crashing
+            }
+        }
+    }
+    return parsedData;
+};
+
+// Helper to stringify JSON fields before DB insertion/update
+const stringifyJsonFields = (data: any, fields: string[]): any => {
+    if (!data) return data;
+    const stringifiedData = { ...data };
+    for (const field of fields) {
+        if (stringifiedData[field] && typeof stringifiedData[field] === 'object') {
+            stringifiedData[field] = JSON.stringify(stringifiedData[field]);
+        }
+    }
+    return stringifiedData;
+}
+
 
 export async function getContent(): Promise<PageContent> {
     const connection = await pool.getConnection();
@@ -14,24 +46,30 @@ export async function getContent(): Promise<PageContent> {
         const [projectsRows] = await connection.query('SELECT * FROM projects ORDER BY display_order ASC');
         const [teamRows] = await connection.query('SELECT * FROM team_members ORDER BY display_order ASC');
         const [blogRows] = await connection.query('SELECT * FROM blog_posts ORDER BY date DESC');
-        
-        // This is a complex operation to fetch all activities and map them to their projects
-        const allActivities = await connection.query('SELECT * FROM project_activities ORDER BY display_order ASC');
-        const projects = (projectsRows as any[]).map(p => {
-            return {
-                ...p,
-                activities: (allActivities[0] as any[]).filter(a => a.project_id === p.id)
-            }
-        });
+        const [allActivitiesRows] = await connection.query('SELECT * FROM project_activities ORDER BY display_order ASC');
 
+        // Parse all JSON fields from DB strings to JS objects
+        const globalContent = parseJsonFields((globalRows as any)[0], ['navigation', 'socialLinks', 'footer']);
+        const uiText = JSON.parse((uiRows as any)[0].texts || '{}');
+        
         const pagesContent: any = {};
         (pagesRows as any[]).forEach(row => {
-            pagesContent[row.page_name] = row.content;
+            pagesContent[row.page_name] = JSON.parse(row.content || '{}');
         });
 
+        const parsedActivities = parseJsonFields(allActivitiesRows, ['title', 'description']);
+        const parsedProjects = parseJsonFields(projectsRows, ['title', 'description']).map((p: any) => ({
+            ...p,
+            activities: parsedActivities.filter((a: any) => a.project_id === p.id)
+        }));
+
+        const parsedTeam = parseJsonFields(teamRows, ['name', 'role', 'bio']);
+        const parsedBlog = parseJsonFields(blogRows, ['title', 'summary', 'content']);
+
+
         return {
-            global: (globalRows as any)[0],
-            ui: (uiRows as any)[0].texts,
+            global: globalContent,
+            ui: uiText,
             homePage: pagesContent.homePage,
             aboutPage: pagesContent.aboutPage,
             projectsPage: pagesContent.projectsPage,
@@ -40,9 +78,9 @@ export async function getContent(): Promise<PageContent> {
             blogPage: pagesContent.blogPage,
             contactPage: pagesContent.contactPage,
             donatePage: pagesContent.donatePage,
-            projects,
-            team: teamRows as any,
-            blog: blogRows as any,
+            projects: parsedProjects,
+            team: parsedTeam,
+            blog: parsedBlog,
         };
     } finally {
         connection.release();
@@ -54,44 +92,47 @@ export async function updateContent(content: PageContent): Promise<void> {
     try {
         await connection.beginTransaction();
         
-        // Update simple tables
-        await connection.execute('UPDATE global_content SET ? WHERE id = 1', [content.global]);
+        // 1. Update Global Content
+        const globalData = stringifyJsonFields(content.global, ['navigation', 'socialLinks', 'footer']);
+        await connection.execute('UPDATE global_content SET ? WHERE id = 1', [globalData]);
+
+        // 2. Update UI Text
         await connection.execute('UPDATE ui_text SET texts = ? WHERE id = 1', [JSON.stringify(content.ui)]);
 
-        // Update pages
-        for (const key of Object.keys(content).filter(k => k.endsWith('Page'))) {
-            const pageKey = key as keyof PageContent;
-            await connection.execute('UPDATE pages_content SET content = ? WHERE page_name = ?', [JSON.stringify(content[pageKey]), pageKey]);
+        // 3. Update Pages Content
+        const pageKeys: (keyof PageContent)[] = ['homePage', 'aboutPage', 'projectsPage', 'projectDetailPage', 'teamPage', 'blogPage', 'contactPage', 'donatePage'];
+        for (const pageKey of pageKeys) {
+            if (content[pageKey]) {
+                await connection.execute('UPDATE pages_content SET content = ? WHERE page_name = ?', [JSON.stringify(content[pageKey]), pageKey]);
+            }
         }
 
-        // Update complex lists (Projects, Team, Blog) - This is a simplified version.
-        // A more robust solution would handle adds/deletes/updates individually.
-        // For now, we clear and re-insert which is simpler but less efficient.
-        
-        // Projects and Activities
+        // 4. Update Projects and Activities (Clear and re-insert)
         await connection.execute('DELETE FROM project_activities');
         await connection.execute('DELETE FROM projects');
         for (const [index, project] of content.projects.entries()) {
-            await connection.execute('INSERT INTO projects (id, title, description, imageUrl, imageAlt, detailImageUrl, display_order) VALUES (?, ?, ?, ?, ?, ?, ?)', 
-                [project.id, JSON.stringify(project.title), JSON.stringify(project.description), project.imageUrl, project.imageAlt, project.detailImageUrl, index]);
-            for(const [actIndex, activity] of project.activities.entries()) {
-                 await connection.execute('INSERT INTO project_activities (id, project_id, date, title, description, imageUrl, display_order) VALUES (?, ?, ?, ?, ?, ?, ?)',
-                    [activity.id, project.id, activity.date, JSON.stringify(activity.title), JSON.stringify(activity.description), activity.imageUrl, actIndex]);
+            const { activities, ...projectData } = project;
+            const stringifiedProject = stringifyJsonFields(projectData, ['title', 'description']);
+            await connection.execute('INSERT INTO projects SET ?', [{ ...stringifiedProject, display_order: index }]);
+            
+            for(const [actIndex, activity] of activities.entries()) {
+                 const stringifiedActivity = stringifyJsonFields(activity, ['title', 'description']);
+                 await connection.execute('INSERT INTO project_activities SET ?', [{ ...stringifiedActivity, project_id: project.id, display_order: actIndex }]);
             }
         }
         
-        // Team Members
+        // 5. Update Team Members
         await connection.execute('DELETE FROM team_members');
         for (const [index, member] of content.team.entries()) {
-            await connection.execute('INSERT INTO team_members (id, name, role, bio, imageUrl, imageAlt, display_order) VALUES (?, ?, ?, ?, ?, ?, ?)',
-                [member.id, JSON.stringify(member.name), JSON.stringify(member.role), JSON.stringify(member.bio), member.imageUrl, member.imageAlt, index]);
+            const stringifiedMember = stringifyJsonFields(member, ['name', 'role', 'bio']);
+            await connection.execute('INSERT INTO team_members SET ?', [{ ...stringifiedMember, display_order: index }]);
         }
 
-        // Blog Posts
+        // 6. Update Blog Posts
         await connection.execute('DELETE FROM blog_posts');
         for (const post of content.blog) {
-             await connection.execute('INSERT INTO blog_posts (id, slug, title, author, date, summary, content, imageUrl, imageAlt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-                [post.id, post.slug, JSON.stringify(post.title), post.author, post.date, JSON.stringify(post.summary), JSON.stringify(post.content), post.imageUrl, post.imageAlt]);
+             const stringifiedPost = stringifyJsonFields(post, ['title', 'summary', 'content']);
+             await connection.execute('INSERT INTO blog_posts SET ?', [stringifiedPost]);
         }
         
         await connection.commit();

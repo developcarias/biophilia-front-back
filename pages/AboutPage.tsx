@@ -6,12 +6,6 @@ import ContentBlock from '../components/ContentBlock';
 import { useI18n } from '../i18n';
 import PageBanner from '../components/PageBanner';
 import Editable from '../components/Editable';
-import ValueCollaborationIcon from '../components/icons/ValueCollaborationIcon';
-import ValueConnectionIcon from '../components/icons/ValueConnectionIcon';
-import ValueEducationIcon from '../components/icons/ValueEducationIcon';
-import ValueEquityIcon from '../components/icons/ValueEquityIcon';
-import ValueLeadershipIcon from '../components/icons/ValueLeadershipIcon';
-import ValueScienceIcon from '../components/icons/ValueScienceIcon';
 
 interface AboutPageProps {
   content: AboutPageContent;
@@ -21,24 +15,22 @@ interface AboutPageProps {
   };
 }
 
-const iconMap: { [key: string]: React.FC<{className?: string}> } = {
-  ValueConnectionIcon,
-  ValueEducationIcon,
-  ValueScienceIcon,
-  ValueEquityIcon,
-  ValueLeadershipIcon,
-  ValueCollaborationIcon,
-};
-
-const ValueCard: React.FC<{item: ValueItem}> = ({ item }) => {
+const ValueCard: React.FC<{item: ValueItem, basePath: string}> = ({ item, basePath }) => {
   const { language } = useI18n();
-  const IconComponent = iconMap[item.icon];
 
   return (
     <div className="bg-white p-6 rounded-lg shadow-lg transition-transform transform hover:-translate-y-2 hover:shadow-2xl flex flex-col items-center text-center h-full">
-      {IconComponent && <IconComponent className="h-20 w-20 text-brand-accent mb-4" />}
-      <h3 className="text-xl font-bold text-brand-green-dark mb-2">{item.title[language]}</h3>
-      <p className="text-brand-gray flex-grow">{item.text[language]}</p>
+      <img 
+        src={item.imageUrl} 
+        alt={item.title[language]} 
+        className="w-32 h-32 object-cover rounded-full mb-6 shadow-md border-4 border-white" 
+      />
+      <Editable localizedText={item.title} basePath={`${basePath}.title`}>
+        <h3 className="text-xl font-bold text-brand-green-dark mb-2">{item.title[language]}</h3>
+      </Editable>
+      <Editable localizedText={item.text} basePath={`${basePath}.text`} multiline>
+        <p className="text-brand-gray flex-grow">{item.text[language]}</p>
+      </Editable>
     </div>
   )
 }
@@ -125,9 +117,9 @@ const AboutPage: React.FC<AboutPageProps> = ({ content, valuesContent }) => {
               <h2 className="text-4xl font-extrabold text-brand-green-dark mb-12">{valuesContent.title[language]}</h2>
             </Editable>
             <div className="flex flex-wrap justify-center -m-4">
-              {valuesContent.items.map(item => (
+              {valuesContent.items.map((item, index) => (
                 <div key={item.id} className="w-full sm:w-1/2 lg:w-1/3 p-4">
-                  <ValueCard item={item} />
+                  <ValueCard item={item} basePath={`homePage.values.items.${index}`} />
                 </div>
               ))}
             </div>

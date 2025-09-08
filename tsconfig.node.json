@@ -1,0 +1,13 @@
+
+{
+  "compilerOptions": {
+    "composite": true,
+    "skipLibCheck": true,
+    "module": "CommonJS",
+    "moduleResolution": "bundler",
+    "allowSyntheticDefaultImports": true,
+    "strict": true,
+    "esModuleInterop": true,
+  },
+  "include": ["vite.config.ts", "server.ts", "services/**/*.ts", "config.ts"]
+}

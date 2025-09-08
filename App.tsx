@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect } from 'react';
 import * as ReactRouterDOM from 'react-router-dom';
 import { PageContent } from './types';
@@ -27,7 +28,7 @@ const AppContent = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const navigate = ReactRouterDOM.useNavigate();
 
-  const API_URL = 'http://localhost:3001'; // Backend URL
+  const API_URL = ''; // Use relative path for proxy
 
   useEffect(() => {
     const fetchContent = async () => {
@@ -114,7 +115,7 @@ const AppContent = () => {
         </main>
         <div 
           className="bg-cover bg-center bg-fixed" 
-          style={{backgroundImage: `url('${content.homePage.parallax2.imageUrl}')`}}
+          style={{backgroundImage: `url('${content.homePage?.parallax2?.imageUrl || ''}')`}}
         >
           <Footer 
             content={content.global} 

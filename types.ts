@@ -15,8 +15,8 @@ export interface ValueItem {
   title: LocalizedText;
   slogan?: LocalizedText;
   text: LocalizedText;
-  icon: string;
-  imageUrl?: string;
+  imageUrl: string;
+  icon?: string; // Kept for ActionRibbon compatibility
 }
 
 export interface ProjectActivity {
@@ -85,7 +85,6 @@ export interface GlobalContent {
   footer: {
     slogan: LocalizedText;
     copyright: LocalizedText;
-    // FIX: Added contact object to footer type definition to resolve type error.
     contact: {
       address: string;
       email: string;

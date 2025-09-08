@@ -1,4 +1,5 @@
 
+
 import React from 'react';
 // FIX: Changed to namespace import to resolve module resolution issues with react-router-dom.
 import * as ReactRouterDOM from 'react-router-dom';
@@ -37,7 +38,8 @@ const ActionRibbon: React.FC<ActionRibbonProps> = ({ items, isVisible }) => {
                 <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
                         {items.map(item => {
-                            const IconComponent = iconComponents[item.icon];
+                            // FIX: Safely access iconComponents by checking if item.icon exists first.
+                            const IconComponent = item.icon ? iconComponents[item.icon] : null;
                             return (
                                 <div key={item.id} className="text-center px-4 flex flex-col items-center">
                                     <div className="mx-auto w-24 h-24 mb-4 rounded-full border-4 border-white flex items-center justify-center bg-white/10 flex-shrink-0">

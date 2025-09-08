@@ -5,7 +5,6 @@ import { HeroSlide, UIText } from '../types';
 import ChevronLeftIcon from './icons/ChevronLeftIcon';
 import ChevronRightIcon from './icons/ChevronRightIcon';
 
-// FIX: Defined HeroProps interface to resolve "Cannot find name" error.
 interface HeroProps {
   slides: HeroSlide[];
   uiText: UIText;
@@ -69,10 +68,10 @@ const Hero: React.FC<HeroProps> = ({ slides, uiText }) => {
             <div className="lg:w-1/2 xl:w-2/5">
                 <h1 className="text-3xl md:text-5xl font-extrabold tracking-tight drop-shadow-lg">{currentSlide.title[language]}</h1>
                 <p className="mt-4 max-w-2xl text-xl md:text-2xl drop-shadow-md whitespace-pre-line opacity-90">{currentSlide.subtitle[language]}</p>
-                {currentSlide.projectId && (
+                {(currentSlide.projectId || currentSlide.activityId) && (
                   <div className="mt-8">
                   <a href={buttonLink} className="bg-brand-accent text-white px-8 py-3 rounded-md text-lg font-semibold hover:bg-brand-accent/90 transition-transform transform hover:scale-105 shadow-lg">
-                      {uiText.supportMission[language]}
+                      {uiText.learnMore[language]}
                   </a>
                   </div>
                 )}

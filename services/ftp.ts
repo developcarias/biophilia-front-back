@@ -1,8 +1,8 @@
 
-
 import * as ftp from 'basic-ftp';
-// FIX: Imported Buffer to resolve "Cannot find name 'Buffer'" error.
-import { Buffer } from 'buffer';
+// FIX: The Buffer type is globally available in Node.js, so this import is not needed.
+// import { Buffer } from 'buffer';
+import { Readable } from 'stream';
 import { config } from '../config';
 
 async function getClient() {
@@ -40,7 +40,9 @@ export async function uploadFile(filename: string, buffer: Buffer) {
     const client = await getClient();
     try {
         const remotePath = `${config.ftp.basePath}/${filename}`;
-        await client.uploadFrom(buffer, remotePath);
+        // FIX: The `uploadFrom` method requires a Readable stream. Convert the buffer to a stream.
+        const readableStream = Readable.from(buffer);
+        await client.uploadFrom(readableStream, remotePath);
     } finally {
         client.close();
     }

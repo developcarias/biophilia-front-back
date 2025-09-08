@@ -1,5 +1,4 @@
-
-import express from 'express';
+import express, { Request, Response } from 'express';
 import cors from 'cors';
 import multer from 'multer';
 import { config } from './config';
@@ -10,7 +9,8 @@ import { sendContactEmail } from './services/email';
 const app = express();
 
 app.use(cors());
-app.use(express.json({ limit: '50mb' }));
+// FIX: Add path to resolve middleware overload ambiguity.
+app.use('/', express.json({ limit: '50mb' }));
 
 // Configure multer for file uploads
 const upload = multer({ storage: multer.memoryStorage() });
@@ -49,12 +49,14 @@ app.get('/api/media', async (req, res) => {
     }
 });
 
-app.post('/api/media/upload', upload.single('file'), async (req, res) => {
-    if (!req.file) {
+// FIX: Add explicit types to the request handler to resolve overload issue.
+app.post('/api/media/upload', upload.single('file'), async (req: Request, res: Response) => {
+    const file = req.file;
+    if (!file) {
         return res.status(400).json({ message: 'No file uploaded.' });
     }
     try {
-        await uploadFile(req.file.originalname, req.file.buffer);
+        await uploadFile(file.originalname, file.buffer);
         res.status(200).json({ message: 'File uploaded successfully.' });
     } catch (error) {
         console.error(error);
