@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect } from 'react';
 import * as ReactRouterDOM from 'react-router-dom';
 import { PageContent, User } from './types';
@@ -34,7 +35,8 @@ const AppContent = () => {
   const [isMediaLibraryOpen, setIsMediaLibraryOpen] = useState(false);
   const [mediaTarget, setMediaTarget] = useState('');
 
-  const API_URL = ''; // Use relative path for proxy
+  // IMPORTANT: Replace this URL with your actual deployed backend URL.
+  const API_URL = 'https://biophilia-front-back.onrender.com';
 
   useEffect(() => {
     // Check for saved login state

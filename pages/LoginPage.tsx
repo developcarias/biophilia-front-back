@@ -1,6 +1,7 @@
 
 
 
+
 import React, { useState } from 'react';
 import * as ReactRouterDOM from 'react-router-dom';
 import { useTranslate } from '../i18n';
@@ -10,6 +11,9 @@ import { User } from '../types';
 interface LoginPageProps {
   onLoginSuccess: (user: User) => void;
 }
+
+// IMPORTANT: Replace this URL with your actual deployed backend URL.
+const API_URL = 'https://biophilia-front-back.onrender.com';
 
 const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
   const [username, setUsername] = useState('');
@@ -25,7 +29,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
     setError('');
     
     try {
-      const response = await fetch('/api/login', {
+      const response = await fetch(`${API_URL}/api/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password }),
