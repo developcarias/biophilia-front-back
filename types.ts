@@ -123,12 +123,12 @@ export interface Statistic {
   icon: string;
   value: string;
   label: LocalizedText;
+  backgroundImages?: string[];
 }
 
 export interface OurNumbersSection {
   title: LocalizedText;
   stats: Statistic[];
-  galleryImages: { id: string; url: string; alt: string }[];
 }
 
 

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 // FIX: Imported LocalizedText type to resolve 'Cannot find name' error.
-import { HomePageContent, ValueItem, AlliancePartner, Project, UIText, OurNumbersSection as OurNumbersSectionType, LocalizedText } from '../types';
+import { HomePageContent, ValueItem, AlliancePartner, Project, UIText, OurNumbersSection as OurNumbersSectionType, LocalizedText, Statistic } from '../types';
 import Hero from '../components/Hero';
 import ParallaxSection from '../components/ParallaxSection';
 import LatestProjects from '../components/LatestProjects';
@@ -33,6 +33,41 @@ const iconMap: { [key: string]: React.FC<{className?: string}> } = {
   EquityIcon,
 };
 
+const StatCard: React.FC<{stat: Statistic, basePath: string}> = ({stat, basePath}) => {
+  const { language } = useI18n();
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const IconComponent = iconMap[stat.icon];
+
+  useEffect(() => {
+    if (!stat.backgroundImages || stat.backgroundImages.length < 2) return;
+    const timer = setInterval(() => {
+      setCurrentImageIndex(prev => (prev + 1) % (stat.backgroundImages?.length || 1));
+    }, 5000);
+    return () => clearInterval(timer);
+  }, [stat.backgroundImages]);
+
+  return (
+      <div className="relative p-6 rounded-lg shadow-lg text-center overflow-hidden w-full min-w-[80vw] md:min-w-0 md:w-auto flex-shrink-0 snap-center h-64 flex flex-col justify-center">
+        {(stat.backgroundImages || []).map((img, imgIndex) => (
+          <div 
+            key={imgIndex} 
+            className="absolute inset-0 bg-cover bg-center transition-opacity duration-1000 ease-in-out" 
+            style={{ backgroundImage: `url('${img}')`, opacity: imgIndex === currentImageIndex ? 1 : 0 }} 
+          />
+        ))}
+        <div className="absolute inset-0 bg-brand-green-dark bg-opacity-70"></div>
+        <div className="relative text-white z-10 flex flex-col items-center justify-center h-full">
+          {IconComponent && <IconComponent className="h-12 w-12 text-white/80 mx-auto mb-4" />}
+          <div className="text-5xl font-bold">{stat.value}</div>
+          <Editable localizedText={stat.label} basePath={`${basePath}.label`}>
+            <div className="text-lg text-white/90 mt-2">{stat.label[language]}</div>
+          </Editable>
+        </div>
+      </div>
+  );
+};
+
+
 interface OurNumbersSectionProps {
   content: OurNumbersSectionType;
   basePath: string;
@@ -40,15 +75,6 @@ interface OurNumbersSectionProps {
 
 const OurNumbersSection: React.FC<OurNumbersSectionProps> = ({ content, basePath }) => {
   const { language } = useI18n();
-  const [currentIndex, setCurrentIndex] = useState(0);
-
-  useEffect(() => {
-    if (!content.galleryImages || content.galleryImages.length === 0) return;
-    const timer = setInterval(() => {
-      setCurrentIndex(prev => (prev + 1) % content.galleryImages.length);
-    }, 4000);
-    return () => clearInterval(timer);
-  }, [content.galleryImages]);
 
   if (!content || !content.stats) return null;
 
@@ -60,37 +86,13 @@ const OurNumbersSection: React.FC<OurNumbersSectionProps> = ({ content, basePath
             <h2 className="text-4xl font-extrabold text-brand-green-dark mb-12">{content.title?.[language]}</h2>
           </Editable>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
+        <div className="md:grid md:grid-cols-3 gap-8 flex overflow-x-auto snap-x snap-mandatory md:snap-none py-4 scrollbar-hide">
           {content.stats.map((stat, index) => {
-            const IconComponent = iconMap[stat.icon];
             const statBasePath = `${basePath}.stats.${index}`;
             return (
-              <div key={stat.id} className="bg-white p-6 rounded-lg shadow-lg text-center border-t-4 border-brand-accent">
-                {IconComponent && <IconComponent className="h-12 w-12 text-brand-accent mx-auto mb-4" />}
-                <div className="text-5xl font-bold text-brand-green-dark">{stat.value}</div>
-                <Editable localizedText={stat.label} basePath={`${statBasePath}.label`}>
-                  <div className="text-lg text-brand-gray mt-2">{stat.label[language]}</div>
-                </Editable>
-              </div>
+              <StatCard stat={stat} basePath={statBasePath} key={stat.id} />
             );
           })}
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          {[0, 1, 2].map(offset => (
-            <div key={offset} className="relative pt-[100%] rounded-lg shadow-lg overflow-hidden bg-gray-200">
-              {(content.galleryImages || []).map((image, imgIndex) => {
-                const isVisible = imgIndex === (currentIndex + offset) % content.galleryImages.length;
-                return (
-                  <img
-                    key={`${image.id}-${offset}`}
-                    src={image.url}
-                    alt={image.alt}
-                    className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ${isVisible ? 'opacity-100' : 'opacity-0'}`}
-                  />
-                );
-              })}
-            </div>
-          ))}
         </div>
       </div>
     </div>

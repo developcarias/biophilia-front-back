@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { AboutPageContent, ValueItem, LocalizedText, ContentBlockType } from '../types';
 import ContentBlock from '../components/ContentBlock';
@@ -98,7 +99,7 @@ const AboutPage: React.FC<AboutPageProps> = ({ content, valuesContent }) => {
       {content.history && (
         <div className="bg-white py-16 lg:py-24">
           <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
               <div className="prose lg:prose-lg max-w-none text-brand-gray">
                 <Editable localizedText={content.history.title} basePath="aboutPage.history.title">
                   <h2 className="text-3xl font-bold text-brand-green-dark mb-6">{content.history.title?.[language]}</h2>

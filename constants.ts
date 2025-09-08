@@ -1,4 +1,5 @@
 
+
 import { PageContent } from './types';
 
 // This is a placeholder for the initial structure.
@@ -57,7 +58,6 @@ export const INITIAL_CONTENT: PageContent = {
     ourNumbers: {
       title: { en: '', es: '' },
       stats: [],
-      galleryImages: []
     },
     alliances: {
       title: { en: '', es: '' },

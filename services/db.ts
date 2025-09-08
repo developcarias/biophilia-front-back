@@ -187,6 +187,7 @@ export async function updateContent(content: PageContent): Promise<void> {
         await connection.commit();
     } catch (error) {
         await connection.rollback();
+        console.error("Database transaction failed. Rolling back changes. Error:", error);
         throw error;
     } finally {
         connection.release();

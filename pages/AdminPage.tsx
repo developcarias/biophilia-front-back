@@ -13,6 +13,9 @@ interface AdminPageProps {
 }
 
 type AdminTab = 'global' | 'home' | 'about' | 'projects' | 'team' | 'blog' | 'contact' | 'donate' | 'users';
+const ADMIN_TAB_KEY = 'biophilia_admin_active_tab';
+const ADMIN_SCROLL_KEY = 'biophilia_admin_scroll_pos';
+
 
 // User Management Component
 const UserManagement: React.FC<{ apiUrl: string }> = ({ apiUrl }) => {
@@ -182,9 +185,34 @@ const UserManagement: React.FC<{ apiUrl: string }> = ({ apiUrl }) => {
 const AdminPage: React.FC<AdminPageProps> = ({ content, onUpdateContent, onDiscardChanges, apiUrl }) => {
   const [formData, setFormData] = useState<PageContent>(JSON.parse(JSON.stringify(content)));
   const [status, setStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
-  const [activeTab, setActiveTab] = useState<AdminTab>('global');
   const t = useTranslate();
   const { openMediaLibrary } = useAdmin();
+
+  const [activeTab, setActiveTab] = useState<AdminTab>(() => {
+    return (sessionStorage.getItem(ADMIN_TAB_KEY) as AdminTab) || 'global';
+  });
+
+  useEffect(() => {
+    const savedScroll = sessionStorage.getItem(ADMIN_SCROLL_KEY);
+    if (savedScroll) {
+        // Use a timeout to ensure the content has rendered before scrolling
+        setTimeout(() => window.scrollTo(0, parseInt(savedScroll, 10)), 100);
+    }
+
+    const handleScroll = () => {
+        sessionStorage.setItem(ADMIN_SCROLL_KEY, String(window.scrollY));
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [activeTab]); // Rerun if tab changes to handle initial scroll for new tab content
+
+  const handleTabChange = (tab: AdminTab) => {
+    setActiveTab(tab);
+    sessionStorage.setItem(ADMIN_TAB_KEY, tab);
+    sessionStorage.removeItem(ADMIN_SCROLL_KEY);
+    window.scrollTo(0, 0);
+  };
+
 
   useEffect(() => {
     setFormData(JSON.parse(JSON.stringify(content)));
@@ -224,15 +252,19 @@ const AdminPage: React.FC<AdminPageProps> = ({ content, onUpdateContent, onDisca
     }));
   }, []);
   
-  const handleAddItem = useCallback((path: string, newItemTemplate: object) => {
+  const handleAddItem = useCallback((path: string, newItemTemplate: object | string) => {
     setFormData(produce(draft => {
         const pathParts = path.split('.');
         let current: any = draft;
         for (let i = 0; i < pathParts.length; i++) {
             if (i === pathParts.length - 1) {
+                 if (current[pathParts[i]] === undefined || current[pathParts[i]] === null) {
+                    current[pathParts[i]] = [];
+                }
                 if (Array.isArray(current[pathParts[i]])) {
                     const id = path === 'global.socialLinks' ? 'facebook' : `new_${Date.now()}`;
-                    current[pathParts[i]].push({ ...newItemTemplate, id });
+                    const newItem = typeof newItemTemplate === 'string' ? newItemTemplate : { ...newItemTemplate, id };
+                    current[pathParts[i]].push(newItem);
                 }
             } else {
                  if (current[pathParts[i]] === undefined) current[pathParts[i]] = {};
@@ -279,7 +311,7 @@ const AdminPage: React.FC<AdminPageProps> = ({ content, onUpdateContent, onDisca
         <label className="block text-brand-gray text-sm font-bold mb-2">{displayLabel}</label>
         <InputComponent
           type={type}
-          defaultValue={value}
+          value={value}
           onChange={(e) => handleInputChange(path, e.target.value)}
           className="shadow appearance-none border rounded w-full py-2 px-3 text-brand-gray leading-tight focus:outline-none focus:shadow-outline bg-white"
           rows={isTextarea ? 10 : undefined}
@@ -296,7 +328,7 @@ const AdminPage: React.FC<AdminPageProps> = ({ content, onUpdateContent, onDisca
           <div className="flex items-center">
               <input
                   type="text"
-                  defaultValue={value}
+                  value={value}
                   onChange={(e) => handleInputChange(path, e.target.value)}
                   className="shadow appearance-none border rounded-l w-full py-2 px-3 text-brand-gray leading-tight focus:outline-none focus:shadow-outline bg-white"
                   placeholder="https://..."
@@ -344,7 +376,7 @@ const AdminPage: React.FC<AdminPageProps> = ({ content, onUpdateContent, onDisca
           <div className="border-b border-gray-200 mb-8">
             <nav className="-mb-px flex space-x-8 overflow-x-auto" aria-label="Tabs">
               {TABS.map((tab) => (
-                <button key={tab.key} onClick={() => setActiveTab(tab.key)} className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm ${activeTab === tab.key ? 'border-brand-accent text-brand-green-dark' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}>{t(tab.labelKey)}</button>
+                <button key={tab.key} onClick={() => handleTabChange(tab.key)} className={`whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm ${activeTab === tab.key ? 'border-brand-accent text-brand-green-dark' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`}>{t(tab.labelKey)}</button>
               ))}
             </nav>
           </div>
@@ -422,7 +454,7 @@ const HomeTab = React.memo(({data, handlers}: {data: PageContent['homePage'], ha
     const { renderLocalizedTextField, renderImageField, renderTextField, handleAddItem, handleRemoveItem, t } = handlers;
     const newHeroSlideTemplate: Omit<HeroSlide, 'id'> = { title: { en: '', es: '' }, subtitle: { en: '', es: '' }, imageUrl: '', projectId: '', activityId: '' };
     const newValueItemTemplate: Omit<ValueItem, 'id'> = { title: { en: '', es: '' }, slogan: { en: '', es: '' }, text: { en: '', es: '' }, imageUrl: '' };
-    const newStatTemplate: Omit<Statistic, 'id'> = { icon: 'LeafIcon', value: '0', label: { en: '', es: '' } };
+    const newStatTemplate: Omit<Statistic, 'id'> = { icon: 'LeafIcon', value: '0', label: { en: '', es: '' }, backgroundImages: [] };
     const newAlliancePartnerTemplate: Omit<AlliancePartner, 'id'> = { name: '', logoUrl: '' };
     return <>
         <h2 className="text-2xl font-semibold text-brand-green-dark mb-4">{t('tabHome')}</h2>
@@ -482,17 +514,17 @@ const HomeTab = React.memo(({data, handlers}: {data: PageContent['homePage'], ha
                 {renderTextField('Icon Name (e.g., LeafIcon)', `homePage.ourNumbers.stats.${index}.icon`)}
                 {renderTextField('Value (Number)', `homePage.ourNumbers.stats.${index}.value`)}
                 {renderLocalizedTextField('Label', `homePage.ourNumbers.stats.${index}.label`)}
+                <h4 className="font-semibold text-brand-gray mt-4 mb-2">Background Images</h4>
+                {stat.backgroundImages?.map((imgUrl, imgIndex) => (
+                    <div key={imgIndex} className="flex items-center space-x-2 mb-2">
+                        {renderImageField(`Image ${imgIndex + 1}`, `homePage.ourNumbers.stats.${index}.backgroundImages.${imgIndex}`)}
+                        <button onClick={() => handleRemoveItem(`homePage.ourNumbers.stats.${index}.backgroundImages`, imgIndex)} className="bg-red-500 text-white px-2 py-1 text-xs rounded self-end mb-4">X</button>
+                    </div>
+                ))}
+                <button onClick={() => handleAddItem(`homePage.ourNumbers.stats.${index}.backgroundImages`, '')} className="mt-2 bg-gray-500 hover:bg-gray-600 text-white font-bold py-1 px-3 text-sm rounded">Add Background Image</button>
             </ListItemWrapper>
         ))}
             <button onClick={() => handleAddItem('homePage.ourNumbers.stats', newStatTemplate)} className="mt-2 bg-blue-500 hover:bg-blue-600 text-white font-bold py-1 px-3 text-sm rounded">{t('addNewItem')}</button>
-            <h4 className="font-semibold text-brand-gray mt-6 mb-2">Gallery Images</h4>
-            {data?.ourNumbers?.galleryImages?.map((image, index) => (
-            <ListItemWrapper key={image.id} title={`Image ${index+1}`} onRemove={() => handleRemoveItem('homePage.ourNumbers.galleryImages', index)}>
-                {renderImageField('Image URL', `homePage.ourNumbers.galleryImages.${index}.url`)}
-                {renderTextField('Alt Text', `homePage.ourNumbers.galleryImages.${index}.alt`)}
-            </ListItemWrapper>
-            ))}
-            <button onClick={() => handleAddItem('homePage.ourNumbers.galleryImages', {url: '', alt: ''})} className="mt-2 bg-blue-500 hover:bg-blue-600 text-white font-bold py-1 px-3 text-sm rounded">{t('addNewItem')}</button>
         </AdminSection>
         <AdminSection title={t('sectionAlliances')}>
         {renderLocalizedTextField('Section Title', `homePage.alliances.title`)}

@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { useAdmin } from './AdminContext';
 import PencilIcon from './icons/PencilIcon';
@@ -21,7 +22,7 @@ const EditableImage: React.FC<EditableImageProps> = ({ src, alt, basePath, class
   }
 
   return (
-    <div className={`relative group/editable ${className}`}>
+    <div className={`relative group/editable overflow-hidden ${className}`}>
       <img src={src} alt={alt} className="w-full h-full object-cover" />
       <button
         onClick={handleEdit}
