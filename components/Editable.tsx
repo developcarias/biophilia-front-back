@@ -1,3 +1,5 @@
+
+
 import React, { useState } from 'react';
 import { LocalizedText } from '../types';
 import { generateText } from '../services/geminiService';
@@ -11,14 +13,17 @@ interface EditableProps {
   localizedText: LocalizedText;
   children: React.ReactNode;
   multiline?: boolean;
+  as?: 'div' | 'span';
 }
 
-const Editable: React.FC<EditableProps> = ({ basePath, localizedText, children, multiline = false }) => {
+const Editable: React.FC<EditableProps> = ({ basePath, localizedText, children, multiline = false, as = 'div' }) => {
   const { isLoggedIn, onUpdate } = useAdmin();
   const [isEditing, setIsEditing] = useState(false);
   const [editText, setEditText] = useState<LocalizedText>({ en: '', es: '' });
   const [isLoadingEn, setIsLoadingEn] = useState(false);
   const [isLoadingEs, setIsLoadingEs] = useState(false);
+  
+  const WrapperComponent = as;
 
   const handleOpen = () => {
     setEditText(localizedText);
@@ -32,7 +37,11 @@ const Editable: React.FC<EditableProps> = ({ basePath, localizedText, children, 
   };
 
   const handleSave = () => {
-    onUpdate(basePath, editText);
+    const trimmedText = {
+      en: editText.en.trim(),
+      es: editText.es.trim(),
+    };
+    onUpdate(basePath, trimmedText);
     handleClose();
   };
   
@@ -57,7 +66,7 @@ const Editable: React.FC<EditableProps> = ({ basePath, localizedText, children, 
   }
 
   return (
-    <div className="relative group/editable">
+    <WrapperComponent className={`relative group/editable ${as === 'span' ? 'inline-block' : ''}`}>
       {children}
       <button
         onClick={handleOpen}
@@ -107,7 +116,7 @@ const Editable: React.FC<EditableProps> = ({ basePath, localizedText, children, 
           </div>
         </div>
       )}
-    </div>
+    </WrapperComponent>
   );
 };
 

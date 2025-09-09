@@ -1,3 +1,5 @@
+
+
 import React from 'react';
 import * as ReactRouterDOM from 'react-router-dom';
 import { BlogPost, BlogPageContent, UIText } from '../types';
@@ -40,7 +42,7 @@ const BlogPostPage: React.FC<BlogPostPageProps> = ({ posts, content, uiText }) =
         title={post.title[language]}
         imageUrl={post.imageUrl}
       />
-      <div className="bg-white py-16">
+      <div className="bg-white py-8 lg:py-12">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-3xl">
           <div className="mb-8 text-center">
             <p className="text-gray-500">By {post.author}</p>

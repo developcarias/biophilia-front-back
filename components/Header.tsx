@@ -46,7 +46,7 @@ const Header: React.FC<HeaderProps> = ({ content, uiText }) => {
 
   const closeMenu = () => setIsMobileMenuOpen(false);
 
-  const headerBaseStyle = `sticky ${isLoggedIn ? 'top-14' : 'top-0'} left-0 right-0 z-40 transition-all duration-300`;
+  const headerBaseStyle = `sticky ${isLoggedIn ? 'top-6' : 'top-0'} left-0 right-0 z-40 transition-all duration-300`;
   const headerScrolledStyle = "bg-brand-accent/60 backdrop-blur-md shadow-lg";
   const headerTopStyle = "bg-transparent";
 
@@ -64,7 +64,7 @@ const Header: React.FC<HeaderProps> = ({ content, uiText }) => {
       {content.socialLinks.map(social => {
         const Icon = socialIconsMap[social.id];
         return (
-          <a key={social.id} href={social.url} aria-label={social.id} className="hover:text-brand-yellow transition-colors">
+          <a key={social.id} href={social.url} target="_blank" rel="noopener noreferrer" aria-label={social.id} className="hover:text-brand-yellow transition-colors">
             {Icon && <Icon className={iconSize} />}
           </a>
         );
@@ -127,7 +127,7 @@ const Header: React.FC<HeaderProps> = ({ content, uiText }) => {
               </ReactRouterDOM.NavLink>
             </div>
 
-            <nav className="hidden lg:flex items-center space-x-4 absolute left-1/2 transform -translate-x-1/2">
+            <nav className="hidden lg:flex items-center space-x-6 absolute left-1/2 transform -translate-x-1/2">
               {content.navigation.map(link => {
                   const navLinkClasses = "text-white text-xl font-medium py-2 border-b-2 transition-colors duration-300 whitespace-nowrap";
                   return (

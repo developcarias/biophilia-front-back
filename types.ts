@@ -1,5 +1,6 @@
 
 
+
 export interface LocalizedText {
   en: string;
   es: string;
@@ -145,10 +146,6 @@ export interface HomePageContent {
     text: LocalizedText;
     imageUrl: string;
     imageAlt: string;
-  };
-  actionLines: {
-    title: LocalizedText;
-    items: ValueItem[];
   };
   latestProjects: {
     title: LocalizedText;

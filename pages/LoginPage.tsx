@@ -1,7 +1,5 @@
 
 
-
-
 import React, { useState } from 'react';
 import * as ReactRouterDOM from 'react-router-dom';
 import { useTranslate } from '../i18n';
@@ -57,7 +55,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
         title={t('loginPageTitle')}
         imageUrl="https://images.unsplash.com/photo-1502514262629-82392e673426?q=80&w=1920&h=1080&fit=crop"
       />
-      <div className="bg-brand-green-light py-12 md:py-20 flex-grow flex items-center">
+      <div className="bg-brand-green-light py-8 lg:py-12 flex-grow flex items-center">
         <div className="container mx-auto px-4">
           <div className="max-w-md mx-auto bg-white rounded-xl shadow-2xl overflow-hidden">
             <div className="p-8 md:p-12">
@@ -72,7 +70,6 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
                     className="shadow appearance-none border rounded w-full py-2 px-3 text-brand-gray leading-tight focus:outline-none focus:shadow-outline bg-white"
-                    placeholder="admin"
                   />
                 </div>
                 <div className="mb-6">
@@ -85,7 +82,6 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     className="shadow appearance-none border rounded w-full py-2 px-3 text-brand-gray mb-3 leading-tight focus:outline-none focus:shadow-outline bg-white"
-                    placeholder="password123"
                   />
                 </div>
                 {error && <p className="text-red-500 text-xs italic mb-4">{error}</p>}

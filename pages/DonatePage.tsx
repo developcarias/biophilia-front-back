@@ -1,3 +1,5 @@
+
+
 import React, { useState } from 'react';
 import { useI18n } from '../i18n';
 import { DonatePageContent } from '../types';
@@ -34,7 +36,7 @@ const DonatePage: React.FC<DonatePageProps> = ({ content }) => {
           basePath="donatePage.thankYou.title"
           localizedText={content.thankYou?.title}
         />
-        <div className="bg-white py-20">
+        <div className="bg-white py-8 lg:py-12">
           <div className="container mx-auto px-4 text-center max-w-2xl">
             <p className="text-xl text-brand-gray">
               {renderTextWithAmount(content.thankYou?.text?.[language] || 'Thank you for your generous donation of ${{amount}}.', amount)}
@@ -53,7 +55,7 @@ const DonatePage: React.FC<DonatePageProps> = ({ content }) => {
         basePath="donatePage.banner.title"
         localizedText={content.banner?.title}
       />
-      <div className="bg-brand-green-light py-12 md:py-20">
+      <div className="bg-brand-green-light py-8 lg:py-12">
         <div className="container mx-auto px-4">
           <div className="max-w-3xl mx-auto bg-white rounded-xl shadow-2xl overflow-hidden">
             <div className="p-8 md:p-12">

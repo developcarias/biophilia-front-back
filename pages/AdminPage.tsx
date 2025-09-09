@@ -1,6 +1,5 @@
 
 
-
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { PageContent, Project, TeamMember, BlogPost, NavLink, ValueItem, HeroSlide, AlliancePartner, ContentBlockType, ProjectActivity, Statistic, User, SocialLink, LocalizedText } from '../types';
 import { useTranslate, TranslationKey } from '../i18n';
@@ -18,7 +17,6 @@ interface AdminPageProps {
 
 type AdminTab = 'global' | 'home' | 'about' | 'projects' | 'team' | 'blog' | 'contact' | 'donate' | 'users';
 const ADMIN_TAB_KEY = 'biophilia_admin_active_tab';
-const ADMIN_SCROLL_KEY = 'biophilia_admin_scroll_pos';
 
 
 // User Management Component
@@ -196,24 +194,9 @@ const AdminPage: React.FC<AdminPageProps> = ({ content, onUpdateContent, onDisca
     return (sessionStorage.getItem(ADMIN_TAB_KEY) as AdminTab) || 'global';
   });
 
-  useEffect(() => {
-    const savedScroll = sessionStorage.getItem(ADMIN_SCROLL_KEY);
-    if (savedScroll) {
-        // Use a timeout to ensure the content has rendered before scrolling
-        setTimeout(() => window.scrollTo(0, parseInt(savedScroll, 10)), 100);
-    }
-
-    const handleScroll = () => {
-        sessionStorage.setItem(ADMIN_SCROLL_KEY, String(window.scrollY));
-    };
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, [activeTab]); // Rerun if tab changes to handle initial scroll for new tab content
-
   const handleTabChange = (tab: AdminTab) => {
     setActiveTab(tab);
     sessionStorage.setItem(ADMIN_TAB_KEY, tab);
-    sessionStorage.removeItem(ADMIN_SCROLL_KEY);
     window.scrollTo(0, 0);
   };
 
@@ -314,7 +297,6 @@ const AdminPage: React.FC<AdminPageProps> = ({ content, onUpdateContent, onDisca
     if (success) {
       setStatus('success');
       setTimeout(() => setStatus('idle'), 3000);
-      window.scrollTo(0, 0);
     } else {
       setStatus('error');
     }
@@ -382,10 +364,10 @@ const AdminPage: React.FC<AdminPageProps> = ({ content, onUpdateContent, onDisca
   return (
     <>
       <PageBanner title={t('adminPanelTitle')} imageUrl="https://images.unsplash.com/photo-1497215728101-856f4ea42174?q=80&w=1920&h=1080&fit=crop" />
-      <div className="bg-white py-16">
+      <div className="bg-white py-8">
         <div className="container mx-auto px-4 sm-px-6 lg:px-8">
           
-          <div className="flex items-center space-x-4 mb-4 sticky top-[176px] bg-white py-4 z-10 border-b">
+          <div className="flex items-center space-x-4 mb-4 sticky top-[9rem] bg-white py-4 z-30 border-b">
             <button onClick={handleSave} disabled={status === 'saving'} className="bg-brand-green-dark hover:bg-brand-green-dark/90 text-white font-bold py-2 px-6 rounded-lg focus:outline-none focus:shadow-outline disabled:bg-gray-400">{status === 'saving' ? 'Saving...' : t('saveChanges')}</button>
             <button onClick={onDiscardChanges} className="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-6 rounded-lg focus:outline-none focus:shadow-outline">{t('discardChanges')}</button>
             {status === 'success' && <div className="bg-brand-accent text-white font-bold py-2 px-4 rounded-lg">{t('changesSaved')}</div>}
@@ -527,7 +509,6 @@ const GlobalTab = React.memo(({data, handlers}: {data: PageContent['global'], ha
 const HomeTab = React.memo(({data, handlers}: {data: PageContent['homePage'], handlers: any}) => {
     const { renderLocalizedTextField, renderImageField, renderTextField, handleAddItem, handleRemoveItem, handleDragAndDrop, t } = handlers;
     const newHeroSlideTemplate: Omit<HeroSlide, 'id'> = { title: { en: '', es: '' }, subtitle: { en: '', es: '' }, imageUrl: '', projectId: '', activityId: '' };
-    const newValueItemTemplate: Omit<ValueItem, 'id'> = { title: { en: '', es: '' }, slogan: { en: '', es: '' }, text: { en: '', es: '' }, imageUrl: '' };
     const newStatTemplate: Omit<Statistic, 'id'> = { iconUrl: 'https://img.icons8.com/ios-glyphs/90/ffffff/deciduous-tree.png', value: '0', label: { en: '', es: '' }, backgroundImages: [] };
     const newAlliancePartnerTemplate: Omit<AlliancePartner, 'id'> = { name: '', logoUrl: '' };
     return <>
@@ -556,23 +537,6 @@ const HomeTab = React.memo(({data, handlers}: {data: PageContent['homePage'], ha
             {renderLocalizedTextField('Text', 'homePage.welcome.text', data.welcome?.text, true)}
             {renderImageField('Image URL', 'homePage.welcome.imageUrl', data.welcome?.imageUrl)}
             {renderTextField('Image Alt Text', 'homePage.welcome.imageAlt', data.welcome?.imageAlt)}
-        </AdminSection>
-        <AdminSection titleKey="sectionActionLines">
-            {renderLocalizedTextField('Section Title', 'homePage.actionLines.title', data.actionLines?.title)}
-            <DraggableList
-                items={data?.actionLines?.items || []}
-                path="homePage.actionLines.items"
-                onDrop={handleDragAndDrop}
-                renderItem={(item: ValueItem, index: number) => (
-                    <ListItemWrapper key={item.id} title={`Action Line: ${item.title?.en || `(Item ${index+1})`}`} onRemove={() => handleRemoveItem('homePage.actionLines.items', index)}>
-                        {renderLocalizedTextField('Title', `homePage.actionLines.items.${index}.title`, item.title)}
-                        {renderLocalizedTextField('Slogan', `homePage.actionLines.items.${index}.slogan`, item.slogan)}
-                        {renderLocalizedTextField('Text', `homePage.actionLines.items.${index}.text`, item.text, true)}
-                        {renderImageField('Image URL', `homePage.actionLines.items.${index}.imageUrl`, item.imageUrl)}
-                    </ListItemWrapper>
-                )}
-            />
-            <button onClick={() => handleAddItem('homePage.actionLines.items', newValueItemTemplate)} className="mt-2 bg-blue-500 hover:bg-blue-600 text-white font-bold py-1 px-3 text-sm rounded">{t('addNewItem')}</button>
         </AdminSection>
          <AdminSection titleKey="sectionLatestProjects">
             {renderLocalizedTextField('Title', 'homePage.latestProjects.title', data.latestProjects?.title)}
@@ -747,7 +711,7 @@ const ProjectsTab = React.memo(({data, handlers}: {data: PageContent, handlers: 
                                 onDrop={handleDragAndDrop}
                                 renderItem={(activity: ProjectActivity, actIndex: number) => (
                                     <ListItemWrapper key={activity.id} title={`Activity: ${activity.title?.en || `(Activity ${actIndex+1})`}`} onRemove={() => handleRemoveItem(`projects.${projIndex}.activities`, actIndex)} nested>
-                                        {renderTextField('Date', `projects.${projIndex}.activities.${actIndex}.date`, activity.date, false, 'date')}
+                                        {renderTextField('Date', `projects.${projIndex}.activities.${actIndex}.date`, activity.date ? activity.date.split('T')[0] : '', false, 'date')}
                                         {renderLocalizedTextField('Title', `projects.${projIndex}.activities.${actIndex}.title`, activity.title)}
                                         {renderLocalizedTextField('Description', `projects.${projIndex}.activities.${actIndex}.description`, activity.description, true)}
                                         {renderImageField('Image URL', `projects.${projIndex}.activities.${actIndex}.imageUrl`, activity.imageUrl)}

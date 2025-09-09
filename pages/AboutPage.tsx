@@ -1,4 +1,5 @@
 
+
 import React from 'react';
 import { AboutPageContent, ValueItem, ContentBlockType } from '../types';
 import ContentBlock from '../components/ContentBlock';
@@ -96,7 +97,7 @@ const AboutPage: React.FC<AboutPageProps> = ({ content }) => {
       
       {/* Our Story Section */}
       {content.history && (
-        <div className="bg-white py-16 lg:py-24">
+        <div className="bg-white py-8 lg:py-12">
           <div className="container mx-auto px-4 sm:px-6 lg:px-8">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
               <div className="prose lg:prose-lg max-w-none text-brand-gray">
@@ -143,12 +144,12 @@ const AboutPage: React.FC<AboutPageProps> = ({ content }) => {
 
 
       {/* Values Section */}
-      {content.values?.items && (
-        <div className="bg-brand-green-light pt-10 pb-16 lg:pt-16 lg:pb-24">
+      {content.values?.items && content.values.items.length > 0 && (
+        <div className="bg-brand-green-light py-16 lg:py-24">
           <div className="container mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center">
               <Editable localizedText={content.values.title} basePath="aboutPage.values.title">
-                <h2 className="text-4xl font-extrabold text-brand-green-dark mb-12">{content.values.title?.[language]}</h2>
+                <h2 className="text-4xl font-extrabold text-brand-green-dark mb-8">{content.values.title?.[language]}</h2>
               </Editable>
               <div className="flex flex-wrap justify-center -m-4">
                 {content.values.items.map((item, index) => (

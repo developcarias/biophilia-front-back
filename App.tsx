@@ -31,6 +31,7 @@ const AppContent = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const navigate = ReactRouterDOM.useNavigate();
+  const location = ReactRouterDOM.useLocation();
 
   const [isMediaLibraryOpen, setIsMediaLibraryOpen] = useState(false);
   const [mediaTarget, setMediaTarget] = useState('');
@@ -58,6 +59,15 @@ const AppContent = () => {
         const response = await fetch(`${API_URL}/api/content`);
         if (!response.ok) throw new Error('Failed to fetch content');
         const data = await response.json();
+
+        // Data migration: Move 'values' from homePage to 'values' in aboutPage
+        if (data.homePage && (data.homePage as any).values && data.aboutPage) {
+          if (!data.aboutPage.values || !data.aboutPage.values.items || data.aboutPage.values.items.length === 0) {
+            data.aboutPage.values = (data.homePage as any).values;
+          }
+          delete (data.homePage as any).values;
+        }
+
         setDisplayContent(data);
         setEditableContent(JSON.parse(JSON.stringify(data))); // Deep copy for editing
       } catch (error) {

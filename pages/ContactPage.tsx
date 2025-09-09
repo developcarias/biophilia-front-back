@@ -1,3 +1,5 @@
+
+
 import React, { useState } from 'react';
 import { ContactPageContent, GlobalContent } from '../types';
 import PageBanner from '../components/PageBanner';
@@ -48,7 +50,7 @@ const ContactPage: React.FC<ContactPageProps> = ({ content, globalContent, apiUr
         localizedText={content.banner?.title}
       />
       
-      <div id="contact-form" className="bg-white py-16">
+      <div id="contact-form" className="bg-white py-8 lg:py-12">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="max-w-4xl mx-auto">
             <Editable localizedText={content.intro || {en:'',es:''}} basePath="contactPage.intro" multiline>
