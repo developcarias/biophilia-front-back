@@ -35,8 +35,10 @@ const AppContent = () => {
   const [isMediaLibraryOpen, setIsMediaLibraryOpen] = useState(false);
   const [mediaTarget, setMediaTarget] = useState('');
 
-  // IMPORTANT: Replace this URL with your actual deployed backend URL.
-  const API_URL = 'https://biophilia-front-back.onrender.com';
+  // Dynamically set API_URL based on hostname
+  const API_URL = window.location.hostname === 'localhost' 
+    ? 'http://localhost:3001' 
+    : 'https://biophilia-front-back.onrender.com';
 
   useEffect(() => {
     // Check for saved login state
@@ -65,7 +67,7 @@ const AppContent = () => {
       }
     };
     fetchContent();
-  }, []);
+  }, [API_URL]);
 
   const handleLogin = (user: User) => {
     setIsLoggedIn(true);
@@ -157,7 +159,7 @@ const AppContent = () => {
         <main className="flex-grow">
           <ReactRouterDOM.Routes>
             <ReactRouterDOM.Route path="/" element={<HomePage content={contentToRender.homePage} uiText={contentToRender.ui} projects={contentToRender.projects} />} />
-            <ReactRouterDOM.Route path="/about" element={<AboutPage content={contentToRender.aboutPage} valuesContent={contentToRender.homePage.values || {title: {en: 'Our Values', es: 'Nuestros Valores'}, items: []}} />} />
+            <ReactRouterDOM.Route path="/about" element={<AboutPage content={contentToRender.aboutPage} />} />
             <ReactRouterDOM.Route path="/projects" element={<ProjectsPage content={contentToRender.projectsPage} projects={contentToRender.projects} uiText={contentToRender.ui} />} />
             <ReactRouterDOM.Route path="/projects/:projectId" element={<ProjectDetailPage projects={contentToRender.projects} content={contentToRender.projectDetailPage} />} />
             <ReactRouterDOM.Route path="/team" element={<TeamPage content={contentToRender.teamPage} team={contentToRender.team} />} />

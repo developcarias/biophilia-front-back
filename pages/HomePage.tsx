@@ -5,14 +5,6 @@ import Hero from '../components/Hero';
 import ParallaxSection from '../components/ParallaxSection';
 import LatestProjects from '../components/LatestProjects';
 import { useI18n } from '../i18n';
-import LeafIcon from '../components/icons/LeafIcon';
-import UsersIcon from '../components/icons/UsersIcon';
-import BookOpenIcon from '../components/icons/BookOpenIcon';
-import BeakerIcon from '../components/icons/BeakerIcon';
-import MegaphoneIcon from '../components/icons/MegaphoneIcon';
-import HandshakeIcon from '../components/icons/HandshakeIcon';
-import SustainabilityIcon from '../components/icons/SustainabilityIcon';
-import EquityIcon from '../components/icons/EquityIcon';
 import Editable from '../components/Editable';
 import EditableImage from '../components/EditableImage';
 
@@ -22,21 +14,9 @@ interface HomePageProps {
   projects: Project[];
 }
 
-const iconMap: { [key: string]: React.FC<{className?: string}> } = {
-  LeafIcon,
-  UsersIcon,
-  BookOpenIcon,
-  BeakerIcon,
-  MegaphoneIcon,
-  HandshakeIcon,
-  SustainabilityIcon,
-  EquityIcon,
-};
-
 const StatCard: React.FC<{stat: Statistic, basePath: string}> = ({stat, basePath}) => {
   const { language } = useI18n();
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  const IconComponent = iconMap[stat.icon];
 
   useEffect(() => {
     if (!stat.backgroundImages || stat.backgroundImages.length < 2) return;
@@ -57,7 +37,7 @@ const StatCard: React.FC<{stat: Statistic, basePath: string}> = ({stat, basePath
         ))}
         <div className="absolute inset-0 bg-brand-green-dark bg-opacity-70"></div>
         <div className="relative text-white z-10 flex flex-col items-center justify-center h-full">
-          {IconComponent && <IconComponent className="h-12 w-12 text-white/80 mx-auto mb-4" />}
+          {stat.iconUrl && <img src={stat.iconUrl} alt={stat.label[language]} className="h-12 w-12 mx-auto mb-4 object-contain" />}
           <div className="text-5xl font-bold">{stat.value}</div>
           <Editable localizedText={stat.label} basePath={`${basePath}.label`}>
             <div className="text-lg text-white/90 mt-2">{stat.label[language]}</div>

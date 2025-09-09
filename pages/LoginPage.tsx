@@ -12,8 +12,10 @@ interface LoginPageProps {
   onLoginSuccess: (user: User) => void;
 }
 
-// IMPORTANT: Replace this URL with your actual deployed backend URL.
-const API_URL = 'https://biophilia-front-back.onrender.com';
+// Dynamically set API_URL based on hostname
+const API_URL = window.location.hostname === 'localhost' 
+  ? 'http://localhost:3001' 
+  : 'https://biophilia-front-back.onrender.com';
 
 const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
   const [username, setUsername] = useState('');

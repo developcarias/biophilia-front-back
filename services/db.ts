@@ -1,6 +1,6 @@
 import mysql from 'mysql2/promise';
 import { config } from '../config';
-import { PageContent, User } from '../types';
+import { PageContent, User, Project, TeamMember, BlogPost, ProjectActivity } from '../types';
 
 const pool = mysql.createPool(config.db);
 
@@ -92,12 +92,13 @@ export async function getContent(): Promise<PageContent> {
     }
 }
 
+
 export async function updateContent(content: PageContent): Promise<void> {
     const connection = await pool.getConnection();
     await connection.beginTransaction();
 
     try {
-        // 1. Update Global Content, UI Text, and Static Page Content
+        // 1. Update simple singleton tables (These are working)
         const globalData = stringifyJsonFields(content.global, ['navigation', 'socialLinks', 'footer']);
         await connection.execute('UPDATE global_content SET logoUrl = ?, navigation = ?, socialLinks = ?, footer = ? WHERE id = 1', [globalData.logoUrl, globalData.navigation, globalData.socialLinks, globalData.footer]);
         await connection.execute('UPDATE ui_text SET texts = ? WHERE id = 1', [JSON.stringify(content.ui)]);
@@ -108,137 +109,99 @@ export async function updateContent(content: PageContent): Promise<void> {
             }
         }
         
-        // --- ROBUST SYNCHRONIZATION FOR DYNAMIC LISTS ---
-
-        // 2. Synchronize Projects and Activities
-        const [dbProjectsRows] = await connection.query('SELECT id FROM projects');
-        const dbProjectIds = new Set((dbProjectsRows as any[]).map(r => r.id));
-        const frontendProjectIds = new Set((content.projects || []).map(p => p.id));
-
-        if (dbProjectIds.size > 0 && frontendProjectIds.size === 0) {
-            throw new Error("SAFETY LOCK: An attempt to delete all projects was blocked.");
+        // --- Synchronization for Projects and Activities ---
+        const incomingProjects = content.projects || [];
+        const [dbProjectsResult] = await connection.query('SELECT id FROM projects');
+        const dbProjectIds = new Set((dbProjectsResult as any[]).map(p => p.id));
+        const incomingProjectIds = new Set(incomingProjects.map(p => p.id));
+        
+        const projectsToDelete = Array.from(dbProjectIds).filter(id => !incomingProjectIds.has(id));
+        if (projectsToDelete.length > 0) {
+            const placeholders = projectsToDelete.map(() => '?').join(',');
+            await connection.query(`DELETE FROM project_activities WHERE project_id IN (${placeholders})`, projectsToDelete);
+            await connection.query(`DELETE FROM projects WHERE id IN (${placeholders})`, projectsToDelete);
         }
+        
+        const incomingActivities = incomingProjects.flatMap(p => p.activities || []);
+        const [dbActivitiesResult] = await connection.query('SELECT id FROM project_activities');
+        const dbActivityIds = new Set((dbActivitiesResult as any[]).map(a => a.id));
+        const incomingActivityIds = new Set(incomingActivities.map(a => a.id));
 
-        const projectIdsToDelete = [...dbProjectIds].filter(id => !frontendProjectIds.has(id));
-        if (projectIdsToDelete.length > 0) {
-            await connection.query('DELETE FROM project_activities WHERE project_id IN (?)', [projectIdsToDelete]);
-            await connection.query('DELETE FROM projects WHERE id IN (?)', [projectIdsToDelete]);
+        const activitiesToDelete = Array.from(dbActivityIds).filter(id => !incomingActivityIds.has(id));
+        if (activitiesToDelete.length > 0) {
+            const placeholders = activitiesToDelete.map(() => '?').join(',');
+            await connection.query(`DELETE FROM project_activities WHERE id IN (${placeholders})`, activitiesToDelete);
         }
-
-        for (const [index, project] of (content.projects || []).entries()) {
+        
+        for (let index = 0; index < incomingProjects.length; index++) {
+            const project = incomingProjects[index];
             const { activities, ...projectData } = project;
-            const stringifiedProject = stringifyJsonFields(projectData, ['title', 'description', 'detailDescription']);
-            const [existingProject] = await connection.query('SELECT id FROM projects WHERE id = ?', [stringifiedProject.id]);
-            
-            if ((existingProject as any[]).length > 0) {
-                await connection.execute(
-                    `UPDATE projects SET title = ?, description = ?, detailDescription = ?, imageUrl = ?, imageAlt = ?, detailImageUrl = ?, display_order = ? WHERE id = ?`,
-                    [stringifiedProject.title, stringifiedProject.description, stringifiedProject.detailDescription, 
-                     stringifiedProject.imageUrl, stringifiedProject.imageAlt, stringifiedProject.detailImageUrl, index, stringifiedProject.id]
-                );
-            } else {
-                await connection.execute(
-                    `INSERT INTO projects (id, title, description, detailDescription, imageUrl, imageAlt, detailImageUrl, display_order) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-                    [stringifiedProject.id, stringifiedProject.title, stringifiedProject.description, stringifiedProject.detailDescription, 
-                     stringifiedProject.imageUrl, stringifiedProject.imageAlt, stringifiedProject.detailImageUrl, index]
-                );
-            }
+            const sp = stringifyJsonFields(projectData, ['title', 'description', 'detailDescription']);
+            const upsertProjectSql = `
+                INSERT INTO projects (id, title, description, detailDescription, imageUrl, imageAlt, detailImageUrl, display_order) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                ON DUPLICATE KEY UPDATE title = VALUES(title), description = VALUES(description), detailDescription = VALUES(detailDescription), imageUrl = VALUES(imageUrl), imageAlt = VALUES(imageAlt), detailImageUrl = VALUES(detailImageUrl), display_order = VALUES(display_order)`;
+            await connection.execute(upsertProjectSql, [sp.id, sp.title, sp.description, sp.detailDescription, sp.imageUrl, sp.imageAlt, sp.detailImageUrl, index]);
 
-            // Synchronize activities for the current project
-            const [dbActivitiesRows] = await connection.query('SELECT id FROM project_activities WHERE project_id = ?', [project.id]);
-            const dbActivityIds = new Set((dbActivitiesRows as any[]).map(r => r.id));
-            const frontendActivityIds = new Set((activities || []).map(a => a.id));
-            
-            const activityIdsToDelete = [...dbActivityIds].filter(id => !frontendActivityIds.has(id));
-            if (activityIdsToDelete.length > 0) {
-                await connection.query('DELETE FROM project_activities WHERE id IN (?)', [activityIdsToDelete]);
-            }
-
-            for (const [actIndex, activity] of (activities || []).entries()) {
-                const stringifiedActivity = stringifyJsonFields(activity, ['title', 'description']);
-                const [existingActivity] = await connection.query('SELECT id FROM project_activities WHERE id = ?', [stringifiedActivity.id]);
-                
-                if ((existingActivity as any[]).length > 0) {
-                    await connection.execute(
-                        `UPDATE project_activities SET date = ?, title = ?, description = ?, imageUrl = ?, display_order = ? WHERE id = ? AND project_id = ?`,
-                        [stringifiedActivity.date, stringifiedActivity.title, stringifiedActivity.description, stringifiedActivity.imageUrl, actIndex, stringifiedActivity.id, project.id]
-                    );
-                } else {
-                    await connection.execute(
-                        `INSERT INTO project_activities (id, date, title, description, imageUrl, project_id, display_order) VALUES (?, ?, ?, ?, ?, ?, ?)`,
-                        [stringifiedActivity.id, stringifiedActivity.date, stringifiedActivity.title, stringifiedActivity.description, stringifiedActivity.imageUrl, project.id, actIndex]
-                    );
-                }
-            }
-        }
-
-        // 3. Synchronize Team Members
-        const [dbTeamRows] = await connection.query('SELECT id FROM team_members');
-        const dbTeamIds = new Set((dbTeamRows as any[]).map(r => r.id));
-        const frontendTeamIds = new Set((content.team || []).map(m => m.id));
-
-        if (dbTeamIds.size > 0 && frontendTeamIds.size === 0) {
-            throw new Error("SAFETY LOCK: An attempt to delete all team members was blocked.");
-        }
-
-        const teamIdsToDelete = [...dbTeamIds].filter(id => !frontendTeamIds.has(id));
-        if (teamIdsToDelete.length > 0) {
-            await connection.query('DELETE FROM team_members WHERE id IN (?)', [teamIdsToDelete]);
-        }
-
-        for (const [index, member] of (content.team || []).entries()) {
-            const stringifiedMember = stringifyJsonFields(member, ['name', 'role', 'bio']);
-            const [existingMember] = await connection.query('SELECT id FROM team_members WHERE id = ?', [stringifiedMember.id]);
-
-            if ((existingMember as any[]).length > 0) {
-                await connection.execute(
-                    `UPDATE team_members SET name = ?, role = ?, bio = ?, imageUrl = ?, imageAlt = ?, display_order = ? WHERE id = ?`,
-                    [stringifiedMember.name, stringifiedMember.role, stringifiedMember.bio, 
-                     stringifiedMember.imageUrl, stringifiedMember.imageAlt, index, stringifiedMember.id]
-                );
-            } else {
-                await connection.execute(
-                    `INSERT INTO team_members (id, name, role, bio, imageUrl, imageAlt, display_order) VALUES (?, ?, ?, ?, ?, ?, ?)`,
-                    [stringifiedMember.id, stringifiedMember.name, stringifiedMember.role, stringifiedMember.bio, 
-                     stringifiedMember.imageUrl, stringifiedMember.imageAlt, index]
-                );
-            }
-        }
-
-        // 4. Synchronize Blog Posts
-        const [dbBlogRows] = await connection.query('SELECT id FROM blog_posts');
-        const dbBlogIds = new Set((dbBlogRows as any[]).map(r => r.id));
-        const frontendBlogIds = new Set((content.blog || []).map(p => p.id));
-        
-        if (dbBlogIds.size > 0 && frontendBlogIds.size === 0) {
-            throw new Error("SAFETY LOCK: An attempt to delete all blog posts was blocked.");
-        }
-        
-        const blogIdsToDelete = [...dbBlogIds].filter(id => !frontendBlogIds.has(id));
-        if (blogIdsToDelete.length > 0) {
-            await connection.query('DELETE FROM blog_posts WHERE id IN (?)', [blogIdsToDelete]);
-        }
-        
-        for (const post of (content.blog || [])) {
-            const stringifiedPost = stringifyJsonFields(post, ['title', 'summary', 'content']);
-            const [existingPost] = await connection.query('SELECT id FROM blog_posts WHERE id = ?', [stringifiedPost.id]);
-
-            if ((existingPost as any[]).length > 0) {
-                await connection.execute(
-                    `UPDATE blog_posts SET slug = ?, title = ?, author = ?, date = ?, summary = ?, content = ?, imageUrl = ?, imageAlt = ? WHERE id = ?`,
-                    [stringifiedPost.slug, stringifiedPost.title, stringifiedPost.author, stringifiedPost.date, 
-                     stringifiedPost.summary, stringifiedPost.content, stringifiedPost.imageUrl, stringifiedPost.imageAlt, stringifiedPost.id]
-                );
-            } else {
-                await connection.execute(
-                    `INSERT INTO blog_posts (id, slug, title, author, date, summary, content, imageUrl, imageAlt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-                    [stringifiedPost.id, stringifiedPost.slug, stringifiedPost.title, stringifiedPost.author, stringifiedPost.date, 
-                     stringifiedPost.summary, stringifiedPost.content, stringifiedPost.imageUrl, stringifiedPost.imageAlt]
-                );
+            const projectActivities = activities || [];
+            for (let actIndex = 0; actIndex < projectActivities.length; actIndex++) {
+                const activity = projectActivities[actIndex];
+                const sa = stringifyJsonFields(activity, ['title', 'description']);
+                const upsertActivitySql = `
+                    INSERT INTO project_activities (id, date, title, description, imageUrl, project_id, display_order) VALUES (?, ?, ?, ?, ?, ?, ?)
+                    ON DUPLICATE KEY UPDATE date = VALUES(date), title = VALUES(title), description = VALUES(description), imageUrl = VALUES(imageUrl), project_id = VALUES(project_id), display_order = VALUES(display_order)`;
+                await connection.execute(upsertActivitySql, [sa.id, sa.date, sa.title, sa.description, sa.imageUrl, project.id, actIndex]);
             }
         }
         
-        await connection.commit();
+        // --- Synchronization for Team Members ---
+        const incomingTeam = content.team || [];
+        const [dbTeamResult] = await connection.query('SELECT id FROM team_members');
+        const dbTeamIds = new Set((dbTeamResult as any[]).map(t => t.id));
+        const incomingTeamIds = new Set(incomingTeam.map(t => t.id));
+        
+        const teamToDelete = Array.from(dbTeamIds).filter(id => !incomingTeamIds.has(id));
+        if (teamToDelete.length > 0) {
+            const placeholders = teamToDelete.map(() => '?').join(',');
+            await connection.query(`DELETE FROM team_members WHERE id IN (${placeholders})`, teamToDelete);
+        }
+        
+        for (let index = 0; index < incomingTeam.length; index++) {
+            const member = incomingTeam[index];
+            const sm = stringifyJsonFields(member, ['name', 'role', 'bio']);
+            const upsertTeamSql = `
+                INSERT INTO team_members (id, name, role, bio, imageUrl, imageAlt, display_order) VALUES (?, ?, ?, ?, ?, ?, ?)
+                ON DUPLICATE KEY UPDATE name = VALUES(name), role = VALUES(role), bio = VALUES(bio), imageUrl = VALUES(imageUrl), imageAlt = VALUES(imageAlt), display_order = VALUES(display_order)`;
+            await connection.execute(upsertTeamSql, [sm.id, sm.name, sm.role, sm.bio, sm.imageUrl, sm.imageAlt, index]);
+        }
+
+        // --- Synchronization for Blog Posts ---
+        const incomingBlog = content.blog || [];
+        const [dbBlogResult] = await connection.query('SELECT id FROM blog_posts');
+        const dbBlogIds = new Set((dbBlogResult as any[]).map(p => p.id));
+        const incomingBlogIds = new Set(incomingBlog.map(p => p.id));
+
+        const blogToDelete = Array.from(dbBlogIds).filter(id => !incomingBlogIds.has(id));
+        if (blogToDelete.length > 0) {
+            const placeholders = blogToDelete.map(() => '?').join(',');
+            await connection.query(`DELETE FROM blog_posts WHERE id IN (${placeholders})`, blogToDelete);
+        }
+
+        for (const post of incomingBlog) {
+            const sp = stringifyJsonFields(post, ['title', 'summary', 'content']);
+            const upsertBlogSql = `
+                INSERT INTO blog_posts (id, slug, title, author, date, summary, content, imageUrl, imageAlt) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON DUPLICATE KEY UPDATE slug = VALUES(slug), title = VALUES(title), author = VALUES(author), date = VALUES(date), summary = VALUES(summary), content = VALUES(content), imageUrl = VALUES(imageUrl), imageAlt = VALUES(imageAlt)`;
+            await connection.execute(upsertBlogSql, [sp.id, sp.slug, sp.title, sp.author, sp.date, sp.summary, sp.content, sp.imageUrl, sp.imageAlt]);
+        }
+        
+        try {
+            await connection.commit();
+        } catch (commitError) {
+            console.error("Failed to commit transaction. Rolling back.", commitError);
+            await connection.rollback();
+            throw commitError;
+        }
+
     } catch (error) {
         await connection.rollback();
         console.error("Database transaction failed. Rolling back changes. Error:", error);
@@ -261,6 +224,7 @@ export async function getAllUsers(): Promise<User[]> {
 
 export async function createUser(user: Omit<User, 'id'>): Promise<User> {
     const { username, password } = user;
+    // In a real app, hash the password here before inserting
     const [result] = await pool.execute('INSERT INTO users (username, password) VALUES (?, ?)', [username, password]);
     const insertId = (result as any).insertId;
     return { id: insertId, username };
@@ -268,6 +232,7 @@ export async function createUser(user: Omit<User, 'id'>): Promise<User> {
 
 export async function updateUser(id: number, updates: Partial<User>): Promise<void> {
     const { username, password } = updates;
+    // In a real app, hash the password if it's being updated
     if (password && username) {
         await pool.execute('UPDATE users SET username = ?, password = ? WHERE id = ?', [username, password, id]);
     } else if (username) {

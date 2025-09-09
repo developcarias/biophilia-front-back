@@ -51,10 +51,6 @@ export const INITIAL_CONTENT: PageContent = {
       text: { en: '', es: '' },
       imageUrl: ''
     },
-    values: {
-      title: { en: '', es: '' },
-      items: []
-    },
     ourNumbers: {
       title: { en: '', es: '' },
       stats: [],
@@ -76,6 +72,10 @@ export const INITIAL_CONTENT: PageContent = {
     mission: { title: { en: '', es: '' }, text: { en: '', es: '' }, imageUrl: '', imageAlt: '' },
     vision: { title: { en: '', es: '' }, text: { en: '', es: '' }, imageUrl: '', imageAlt: '' },
     work: { title: { en: '', es: '' }, text: { en: '', es: '' }, imageUrl: '', imageAlt: '' },
+    values: {
+      title: { en: '', es: '' },
+      items: []
+    },
   },
   projectsPage: {
     banner: { title: { en: '', es: '' }, imageUrl: '' },

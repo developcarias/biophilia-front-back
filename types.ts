@@ -25,6 +25,7 @@ export interface ProjectActivity {
   title: LocalizedText;
   description: LocalizedText;
   imageUrl: string;
+  display_order: number;
 }
 
 export interface Project {
@@ -36,6 +37,7 @@ export interface Project {
   imageAlt: string;
   activities: ProjectActivity[];
   detailImageUrl: string;
+  display_order: number;
 }
 
 export interface TeamMember {
@@ -45,6 +47,7 @@ export interface TeamMember {
   bio: LocalizedText;
   imageUrl: string;
   imageAlt: string;
+  display_order: number;
 }
 
 export interface BlogPost {
@@ -121,7 +124,7 @@ export interface HeroSlide {
 
 export interface Statistic {
   id: string;
-  icon: string;
+  iconUrl: string;
   value: string;
   label: LocalizedText;
   backgroundImages?: string[];
@@ -157,10 +160,6 @@ export interface HomePageContent {
     text: LocalizedText;
     imageUrl: string;
   };
-  values: {
-    title: LocalizedText;
-    items: ValueItem[];
-  };
   ourNumbers: OurNumbersSection;
   alliances: {
     title: LocalizedText;
@@ -194,6 +193,10 @@ export interface AboutPageContent {
   mission: ContentBlockType;
   vision: ContentBlockType;
   work: ContentBlockType;
+  values: {
+    title: LocalizedText;
+    items: ValueItem[];
+  };
 }
 
 export interface ProjectsPageContent {

@@ -1,4 +1,3 @@
-
 export const translations = {
   en: {
     // General UI
@@ -62,6 +61,10 @@ export const translations = {
     sectionBanner: 'Page Banner',
     sectionIntro: 'Introductory Text',
     sectionForm: 'Contact Form',
+    // FIX: Added missing translation keys for admin page sections.
+    sectionOurNumbers: 'Our Numbers Section',
+    sectionProjectDetail: 'Program Detail Page',
+    sectionThankYou: 'Thank You Section',
 
     addNewItem: 'Add New Item',
     addNewProject: 'Add New Program',
@@ -171,6 +174,10 @@ export const translations = {
     sectionBanner: 'Banner de la Página',
     sectionIntro: 'Texto de Introducción',
     sectionForm: 'Formulario de Contacto',
+    // FIX: Added missing translation keys for admin page sections.
+    sectionOurNumbers: 'Sección Nuestras Cifras',
+    sectionProjectDetail: 'Página de Detalle de Programa',
+    sectionThankYou: 'Sección de Agradecimiento',
 
     addNewItem: 'Agregar Nuevo Elemento',
     addNewProject: 'Agregar Nuevo Programa',

@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { AboutPageContent, ValueItem, LocalizedText, ContentBlockType } from '../types';
+import { AboutPageContent, ValueItem, ContentBlockType } from '../types';
 import ContentBlock from '../components/ContentBlock';
 import { useI18n } from '../i18n';
 import PageBanner from '../components/PageBanner';
@@ -17,10 +17,6 @@ import EditableImage from '../components/EditableImage';
 
 interface AboutPageProps {
   content: AboutPageContent;
-  valuesContent: {
-    title: LocalizedText;
-    items: ValueItem[];
-  };
 }
 
 const valueIconMap: { [key: string]: React.FC<{className?: string}> } = {
@@ -39,11 +35,14 @@ const ValueCard: React.FC<{item: ValueItem, basePath: string}> = ({ item, basePa
   return (
     <div className="bg-white p-6 rounded-lg shadow-lg transition-transform transform hover:-translate-y-2 hover:shadow-2xl flex flex-col items-center text-center h-full">
       {item.imageUrl ? (
-        <img 
-          src={item.imageUrl} 
-          alt={item.title?.[language] || 'Value Image'} 
-          className="w-32 h-32 object-cover rounded-full mb-6 shadow-md border-4 border-white" 
-        />
+        <div className="w-32 h-32 rounded-full mb-6 shadow-md border-4 border-white flex items-center justify-center bg-gray-100 overflow-hidden">
+          <EditableImage
+            src={item.imageUrl}
+            alt={item.title?.[language] || 'Value Image'}
+            basePath={`${basePath}.imageUrl`}
+            className="w-full h-full object-contain"
+          />
+        </div>
       ) : IconComponent ? (
         <div className="w-32 h-32 flex items-center justify-center mb-6 text-brand-accent">
             <IconComponent className="h-24 w-24" />
@@ -81,7 +80,7 @@ const MissionVisionCard: React.FC<{ content: ContentBlockType, basePath: string 
 };
 
 
-const AboutPage: React.FC<AboutPageProps> = ({ content, valuesContent }) => {
+const AboutPage: React.FC<AboutPageProps> = ({ content }) => {
   const { language } = useI18n();
 
   if (!content) return null; // Prevent crash if content is not loaded
@@ -144,17 +143,17 @@ const AboutPage: React.FC<AboutPageProps> = ({ content, valuesContent }) => {
 
 
       {/* Values Section */}
-      {valuesContent?.items && (
+      {content.values?.items && (
         <div className="bg-brand-green-light pt-10 pb-16 lg:pt-16 lg:pb-24">
           <div className="container mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center">
-              <Editable localizedText={valuesContent.title} basePath="homePage.values.title">
-                <h2 className="text-4xl font-extrabold text-brand-green-dark mb-12">{valuesContent.title?.[language]}</h2>
+              <Editable localizedText={content.values.title} basePath="aboutPage.values.title">
+                <h2 className="text-4xl font-extrabold text-brand-green-dark mb-12">{content.values.title?.[language]}</h2>
               </Editable>
               <div className="flex flex-wrap justify-center -m-4">
-                {valuesContent.items.map((item, index) => (
+                {content.values.items.map((item, index) => (
                   <div key={item.id} className="w-full sm:w-1/2 lg:w-1/3 p-4">
-                    <ValueCard item={item} basePath={`homePage.values.items.${index}`} />
+                    <ValueCard item={item} basePath={`aboutPage.values.items.${index}`} />
                   </div>
                 ))}
               </div>
